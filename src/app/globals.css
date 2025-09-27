@@ -26,5 +26,5 @@ body {
 }
 
 .sidebar-item {
-  @apply p-2 rounded-md hover:bg-gray-100 cursor-pointer;
+  @apply p-2 rounded-md hover:bg-gray-200 cursor-pointer;
 }
