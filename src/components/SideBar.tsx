@@ -109,7 +109,7 @@ export default function SideBar() {
           </div>
         ))}
       </aside>
-      <aside className="pt-2 pr-1">
+      <aside className="pt-2">
         {links.map((link, index) => (
           <a
             href={link.link}
@@ -118,7 +118,13 @@ export default function SideBar() {
             key={index}
           >
             <div className="sidebar-item flex flex-row items-center w-full">
-              <Image src={link.src} alt={link.label} width={20} height={20} />
+              <Image
+                src={link.src}
+                alt={link.label}
+                width={20}
+                height={20}
+                className="shrink-0"
+              />
               <div
                 className={`text-sm ml-1 whitespace-nowrap transition-[opacity] duration-300 ease-in`}
                 style={{ opacity: cutNav ? 0 : 1 }}
