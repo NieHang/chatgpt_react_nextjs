@@ -1,11 +1,15 @@
 'use client'
 
 import Image from 'next/image'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 export default function SideBar() {
   const [cutNav, setCutNav] = useState(false)
   const [imgSrc, setIconImgSrc] = useState('/sidebar/gpt.svg')
+  const [showBorder, setShowBorder] = useState(false)
+  const navRef = useRef<HTMLElement>(null)
+  const debounceTimer = useRef<NodeJS.Timeout | null>(null)
+
   const features = [
     { src: '/sidebar/edit.svg', label: 'New Chat' },
     { src: '/sidebar/search.svg', label: 'Search Chats' },
@@ -22,96 +26,31 @@ export default function SideBar() {
       label: 'Sora',
       link: 'https://sora.chatgpt.com/explore',
     },
-    {
-      src: '/sidebar/codex.svg',
-      label: 'Codex',
-      link: 'https://chatgpt.com/codex',
-    },
-    {
-      src: '/sidebar/sora.svg',
-      label: 'Sora',
-      link: 'https://sora.chatgpt.com/explore',
-    },
-    {
-      src: '/sidebar/codex.svg',
-      label: 'Codex',
-      link: 'https://chatgpt.com/codex',
-    },
-    {
-      src: '/sidebar/sora.svg',
-      label: 'Sora',
-      link: 'https://sora.chatgpt.com/explore',
-    },
-    {
-      src: '/sidebar/codex.svg',
-      label: 'Codex',
-      link: 'https://chatgpt.com/codex',
-    },
-    {
-      src: '/sidebar/sora.svg',
-      label: 'Sora',
-      link: 'https://sora.chatgpt.com/explore',
-    },
-    {
-      src: '/sidebar/codex.svg',
-      label: 'Codex',
-      link: 'https://chatgpt.com/codex',
-    },
-    {
-      src: '/sidebar/sora.svg',
-      label: 'Sora',
-      link: 'https://sora.chatgpt.com/explore',
-    },
-    {
-      src: '/sidebar/sora.svg',
-      label: 'Sora',
-      link: 'https://sora.chatgpt.com/explore',
-    },
-    {
-      src: '/sidebar/codex.svg',
-      label: 'Codex',
-      link: 'https://chatgpt.com/codex',
-    },
-    {
-      src: '/sidebar/sora.svg',
-      label: 'Sora',
-      link: 'https://sora.chatgpt.com/explore',
-    },
-    {
-      src: '/sidebar/sora.svg',
-      label: 'Sora',
-      link: 'https://sora.chatgpt.com/explore',
-    },
-    {
-      src: '/sidebar/codex.svg',
-      label: 'Codex',
-      link: 'https://chatgpt.com/codex',
-    },
-    {
-      src: '/sidebar/sora.svg',
-      label: 'Sora',
-      link: 'https://sora.chatgpt.com/explore',
-    },
-    {
-      src: '/sidebar/sora.svg',
-      label: 'Sora',
-      link: 'https://sora.chatgpt.com/explore',
-    },
-    {
-      src: '/sidebar/codex.svg',
-      label: 'Codex',
-      link: 'https://chatgpt.com/codex',
-    },
-    {
-      src: '/sidebar/sora.svg',
-      label: 'Sora',
-      link: 'https://sora.chatgpt.com/explore',
-    },
   ]
+
+  useEffect(() => {
+    const nav = navRef.current
+    if (nav) {
+      const handleScroll = (e: Event) => {
+        if (debounceTimer.current) {
+          clearTimeout(debounceTimer.current)
+        }
+        debounceTimer.current = setTimeout(() => {
+          setShowBorder((e.target as HTMLElement).scrollTop > 0)
+        }, 200)
+      }
+      nav.addEventListener('scroll', handleScroll)
+      return () => {
+        nav.removeEventListener('scroll', handleScroll)
+        if (debounceTimer.current) clearTimeout(debounceTimer.current)
+      }
+    }
+  }, [])
 
   return (
     <nav
-      className={`transition-[width] duration-300 ease-in h-full p-1 border-r-1 border-gray-100 bg-gray-50`}
+      ref={navRef}
+      className={`overflow-y-auto transition-[width] duration-300 ease-in h-screen p-1 border-r-1 border-gray-100 bg-gray-50`}
       style={{ width: cutNav ? '45px' : '260px' }}
     >
       <div className="sticky top-0 flex items-center justify-end pb-2 h-11">
@@ -146,7 +85,11 @@ export default function SideBar() {
           />
         </div>
       </div>
-      <aside className="sticky top-[44px] bg-gray-50">
+      <aside
+        className={`${
+          showBorder ? 'border-b-1 border-gray-200' : ''
+        } sticky top-[44px] bg-gray-50`}
+      >
         {features.map((feature) => (
           <div className="pb-2" key={feature.label}>
             <div className={`sidebar-item flex flex-row items-center w-auto`}>
@@ -166,7 +109,7 @@ export default function SideBar() {
           </div>
         ))}
       </aside>
-      <aside className="overflow-y-auto h-[calc(100vh-112px)] pt-2 pr-1 border-t-1 border-gray-200">
+      <aside className="pt-2 pr-1">
         {links.map((link, index) => (
           <a
             href={link.link}
