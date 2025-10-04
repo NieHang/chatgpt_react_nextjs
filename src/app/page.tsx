@@ -1,12 +1,15 @@
+'use client'
+
 import SideBar from '@/components/SideBar'
 import Image from 'next/image'
+import Popover from '@/components/common/Popover'
 
 export default function Home() {
   return (
     <div className="flex h-full w-full">
       <SideBar />
-      <section className="relative w-full p-1">
-        <div className="flex items-center justify-between">
+      <section className="relative w-full p-1 flex items-center justify-center">
+        <div className="absolute top-1 left-1 right-1 flex items-center justify-between">
           <div className="sidebar-item flex items-center p-1">
             <span>ChatGPT</span>
             <span className="text-gray-400 px-1">5</span>
@@ -26,6 +29,9 @@ export default function Home() {
             ></Image>
           </div>
         </div>
+        <Popover content="I am a popover" trigger="click">
+          hello
+        </Popover>
       </section>
     </div>
   )
