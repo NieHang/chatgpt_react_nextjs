@@ -74,7 +74,7 @@ export default function Popover(props: PopoverProps) {
       ref={refs.setFloating}
       style={floatingStyles}
       {...getFloatingProps()}
-      className="border-gray-200 border-1 rounded p-2"
+      className="border-gray-300 border-1 rounded-2xl p-4"
     >
       {content}
     </div>
