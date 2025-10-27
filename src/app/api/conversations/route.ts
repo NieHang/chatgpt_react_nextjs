@@ -32,3 +32,25 @@ export async function GET() {
   }
 }
 
+export async function POST() {
+  try {
+    const db = await getDb()
+    const now = new Date()
+    const doc = {
+      title: 'New Conversation',
+      createdAt: now,
+      updatedAt: now,
+    }
+    const { insertedId } = await db!.collection('conversations').insertOne(doc)
+    return NextResponse.json({
+      id: insertedId.toString(),
+    })
+  } catch (error) {
+    console.error(error)
+    return NextResponse.json(
+      { message: 'Failed to create conversation' },
+      { status: 500 }
+    )
+  }
+}
+
