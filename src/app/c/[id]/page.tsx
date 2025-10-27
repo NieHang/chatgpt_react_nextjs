@@ -1,3 +1,5 @@
+import Chat from '@/components/Chat'
+
 type ChatPageProps = {
   params: {
     id: string
@@ -6,6 +8,10 @@ type ChatPageProps = {
 
 export default async function ChatPage({ params }: ChatPageProps) {
   const { id } = await params
-  return <div>Chat Page {id}</div>
+  return (
+    <div>
+      <Chat />
+    </div>
+  )
 }
 
