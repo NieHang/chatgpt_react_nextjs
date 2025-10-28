@@ -1,11 +1,22 @@
 import Image from 'next/image'
 
-export default function AskInput() {
-  return <form className="w-[70%] flex flex-col items-start p-4 rounded-3xl border border-gray-300">
+export default function AskInput({
+  value,
+  onChange,
+  onKeyDown,
+}: {
+  value: string
+  onChange: (value: string) => void
+  onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void
+}) {
+  return <div className="w-[70%] flex flex-col items-start p-4 rounded-3xl border border-gray-300">
     <input
       type="text"
+      value={value}
       placeholder="Ask me anything..."
       className="w-full outline-none border-none bg-transparent"
+      onChange={(e) => onChange(e.target.value)}
+      onKeyDown={(e) => onKeyDown(e)}
     />
     <div className="flex items-start mt-2">
       <div className="flex items-start mt-2">
@@ -19,5 +30,5 @@ export default function AskInput() {
         <span className="ml-2 text-sm text-blue-400 cursor-pointer">Thinking</span>
       </div>
     </div>
-  </form>
+  </div>
 }

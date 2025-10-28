@@ -23,7 +23,6 @@ export default function Home() {
         </div>
         <div className='w-full flex flex-col items-center justify-center'>
           <div className='text-[30px] mb-8'>What are you working on?</div>
-          <AskInput />
         </div>
       </section>
     </div>

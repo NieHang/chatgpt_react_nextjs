@@ -1,6 +1,7 @@
 'use client'
 
 import { useRef, useState } from 'react'
+import AskInput from '@/components/common/AskInput'
 
 type Msg = {
   role: 'user' | 'assistant'
@@ -40,28 +41,22 @@ export default function Chat() {
 
       const reader = res.body.getReader()
       const decoder = new TextDecoder()
+      let chunk = ''
 
       while (true) {
         const { value, done } = await reader.read()
         if (done) break
-        const chunk = decoder.decode(value || new Uint8Array(), {
+        chunk += decoder.decode(value || new Uint8Array(), {
           stream: true,
         })
         if (!chunk) continue
+      }
 
-        setMessages((prev) => {
+      setMessages((prev) => {
           const cp = [...prev]
-          const i = cp.findIndex(
-            (m, index) => m.role === 'assistant' && index === cp.length - 1
-          )
-          if (i >= 0)
-            cp[i] = {
-              ...cp[i],
-              content: cp[i].content + chunk,
-            }
+          cp.push({ role: 'assistant', content: chunk })
           return cp
         })
-      }
     } catch (error) {
       setMessages((prev) => {
         const cp = [...prev]
@@ -87,31 +82,22 @@ export default function Chat() {
             key={index}
             className={`p-3 rounded-md max-w-lg ${
               msg.role === 'user'
-                ? 'bg-blue-500 text-white self-end'
-                : 'bg-gray-200 text-black self-start'
+                ? 'bg-blue-500 text-white place-self-end'
+                : 'bg-gray-200 text-black place-self-start'
             }`}
           >
             {msg.content}
           </div>
         ))}
       </div>
-      <div className="border-t p-3 flex gap-2">
-        <input
-          type="text"
-          className="flex-1 border rounded px-3 py-2"
+      <div className="p-3 flex justify-center gap-2">
+        <AskInput
           value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) send()
+          onChange={setInput}
+          onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
+            if (e.key === 'Enter') send()
           }}
-          placeholder="Message..."
         />
-        <button
-          className="px-4 py-2 rounded bg-black text-white"
-          onClick={send}
-        >
-          Send ⌘/Ctrl+Enter
-        </button>
       </div>
     </div>
   )
