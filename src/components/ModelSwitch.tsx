@@ -1,3 +1,5 @@
+'use client'
+
 import Popover from '@/components/common/Popover'
 import Image from 'next/image'
 import { useState } from 'react'

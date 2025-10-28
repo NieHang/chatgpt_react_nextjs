@@ -53,10 +53,10 @@ export default function Chat() {
       }
 
       setMessages((prev) => {
-          const cp = [...prev]
-          cp.push({ role: 'assistant', content: chunk })
-          return cp
-        })
+        const cp = [...prev]
+        cp.push({ role: 'assistant', content: chunk })
+        return cp
+      })
     } catch (error) {
       setMessages((prev) => {
         const cp = [...prev]
@@ -75,15 +75,13 @@ export default function Chat() {
   }
 
   return (
-    <div className="flex flex-col h-screen">
+    <div className="flex flex-col w-[70%] h-full">
       <div className="flex-1 overflow-auto p-4 space-y-3">
         {messages.map((msg, index) => (
           <div
             key={index}
-            className={`p-3 rounded-md max-w-lg ${
-              msg.role === 'user'
-                ? 'bg-blue-500 text-white place-self-end'
-                : 'bg-gray-200 text-black place-self-start'
+            className={`bg-[#F4F4F4] text-black px-4 rounded-[18px] py-1.5 data-[multiline]:py-3 max-w-lg ${
+              msg.role === 'user' ? 'place-self-end' : 'place-self-start'
             }`}
           >
             {msg.content}
