@@ -17,7 +17,9 @@ export default function Home() {
   const onInputKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && input.trim()) {
       const chatId = new ObjectId().toHexString()
-      router.push(`/c/${chatId}`)
+      router.push(
+        `/c/${chatId}?initialMessage=${encodeURIComponent(input.trim())}`
+      )
     }
   }
 

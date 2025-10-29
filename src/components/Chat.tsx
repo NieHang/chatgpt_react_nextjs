@@ -1,80 +1,98 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import AskInput from '@/components/common/AskInput'
-import type { Message } from '@/types/Conversation';
-import { useParams } from 'next/navigation';
+import type { Message } from '@/types/Conversation'
+import { useRouter, useParams, useSearchParams } from 'next/navigation'
 
 export default function Chat() {
+  const router = useRouter()
+
+  const searchParams = useSearchParams()
+  const initialMessage = searchParams.get('initialMessage')
+
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const abortRef = useRef<AbortController | null>(null)
   const { id: conversationId } = useParams()
+  const hasSentInitial = useRef(false)
 
-  async function send() {
-    const content = input.trim()
-    if (!content) return
-    setInput('')
+  const send = useCallback(
+    async (contentArg?: string) => {
+      const content = (contentArg ?? input).trim()
+      if (!content) return
+      if (!contentArg) setInput('')
 
-    const newMessages = [...messages, { role: 'user', content }] as Message[]
-    setMessages(newMessages)
+      const newMessages = [...messages, { role: 'user', content }] as Message[]
+      setMessages(newMessages)
 
-    abortRef.current?.abort()
-    const ac = new AbortController()
-    abortRef.current = ac
+      abortRef.current?.abort()
+      const ac = new AbortController()
+      abortRef.current = ac
 
-    try {
-      const res = await fetch('/api/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ messages: newMessages, conversationId }),
-        signal: ac.signal,
-      })
-      if (!res.ok || !res.body) {
-        console.error('Error from API', await res.text())
-        return
-      }
-
-      const reader = res.body.getReader()
-      const decoder = new TextDecoder()
-      let chunk = ''
-
-      while (true) {
-        const { value, done } = await reader.read()
-        if (done) break
-        chunk += decoder.decode(value || new Uint8Array(), {
-          stream: true,
+      try {
+        const res = await fetch('/api/chat', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ messages: newMessages, conversationId }),
+          signal: ac.signal,
         })
-        if (!chunk) continue
+        if (!res.ok || !res.body) {
+          console.error('Error from API', await res.text())
+          return
+        }
 
+        const reader = res.body.getReader()
+        const decoder = new TextDecoder()
+        let chunk = ''
+
+        while (true) {
+          const { value, done } = await reader.read()
+          if (done) break
+          chunk = decoder.decode(value || new Uint8Array(), {
+            stream: true,
+          })
+          if (!chunk) continue
+
+          setMessages((prev) => {
+            const cp = [...prev]
+            const i = cp.findIndex(
+              (m, index) => m.role === 'assistant' && index === cp.length - 1
+            )
+            if (i >= 0) cp[i] = { ...cp[i], content: cp[i].content + chunk }
+            else cp.push({ role: 'assistant', content: chunk })
+            return cp
+          })
+        }
+      } catch (error) {
         setMessages((prev) => {
           const cp = [...prev]
           const i = cp.findIndex(
             (m, index) => m.role === 'assistant' && index === cp.length - 1
           )
-          if (i >= 0) cp[i] = { ...cp[i], content: cp[i].content + chunk }
-          else cp.push({ role: 'assistant', content: chunk })
+          if (i >= 0)
+            cp[i] = {
+              ...cp[i],
+              content:
+                cp[i].content + '\n\n[Error: ' + (error as Error).message + ']',
+            }
           return cp
         })
       }
-    } catch (error) {
-      setMessages((prev) => {
-        const cp = [...prev]
-        const i = cp.findIndex(
-          (m, index) => m.role === 'assistant' && index === cp.length - 1
-        )
-        if (i >= 0)
-          cp[i] = {
-            ...cp[i],
-            content:
-              cp[i].content + '\n\n[Error: ' + (error as Error).message + ']',
-          }
-        return cp
-      })
-    }
-  }
+    },
+    [conversationId, input, messages]
+  )
+
+  useEffect(() => {
+    if (!initialMessage || hasSentInitial.current) return
+    hasSentInitial.current = true
+    ;(async () => {
+      await send(initialMessage)
+      router.replace(`/c/${conversationId}`) // Remove initialMessage from URL
+    })()
+  }, [initialMessage, send, conversationId, router])
 
   return (
     <div className="flex flex-col w-[70%] h-full">
@@ -95,7 +113,7 @@ export default function Chat() {
           value={input}
           onChange={setInput}
           onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
-            if (e.key === 'Enter') send()
+            if (e.key === 'Enter') void send()
           }}
         />
       </div>
