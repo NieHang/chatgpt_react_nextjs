@@ -2,23 +2,21 @@
 
 import { useRef, useState } from 'react'
 import AskInput from '@/components/common/AskInput'
-
-type Msg = {
-  role: 'user' | 'assistant'
-  content: string
-}
+import type { Message } from '@/types/Conversation';
+import { useParams } from 'next/navigation';
 
 export default function Chat() {
-  const [messages, setMessages] = useState<Msg[]>([])
+  const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const abortRef = useRef<AbortController | null>(null)
+  const { id: conversationId } = useParams()
 
   async function send() {
     const content = input.trim()
     if (!content) return
     setInput('')
 
-    const newMessages = [...messages, { role: 'user', content }] as Msg[]
+    const newMessages = [...messages, { role: 'user', content }] as Message[]
     setMessages(newMessages)
 
     abortRef.current?.abort()
@@ -31,7 +29,7 @@ export default function Chat() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ messages: newMessages }),
+        body: JSON.stringify({ messages: newMessages, conversationId }),
         signal: ac.signal,
       })
       if (!res.ok || !res.body) {
@@ -50,13 +48,17 @@ export default function Chat() {
           stream: true,
         })
         if (!chunk) continue
-      }
 
-      setMessages((prev) => {
-        const cp = [...prev]
-        cp.push({ role: 'assistant', content: chunk })
-        return cp
-      })
+        setMessages((prev) => {
+          const cp = [...prev]
+          const i = cp.findIndex(
+            (m, index) => m.role === 'assistant' && index === cp.length - 1
+          )
+          if (i >= 0) cp[i] = { ...cp[i], content: cp[i].content + chunk }
+          else cp.push({ role: 'assistant', content: chunk })
+          return cp
+        })
+      }
     } catch (error) {
       setMessages((prev) => {
         const cp = [...prev]

@@ -4,6 +4,7 @@ import AskInput from '@/components/common/AskInput'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import type { KeyboardEvent } from 'react'
+import { ObjectId } from 'bson'
 
 export default function Home() {
   const router = useRouter()
@@ -15,10 +16,7 @@ export default function Home() {
 
   const onInputKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && input.trim()) {
-      const chatId =
-        typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
-          ? crypto.randomUUID()
-          : Date.now().toString(36)
+      const chatId = new ObjectId().toHexString()
       router.push(`/c/${chatId}`)
     }
   }

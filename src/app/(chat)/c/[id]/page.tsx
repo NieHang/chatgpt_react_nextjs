@@ -6,8 +6,8 @@ type ChatPageProps = {
   }
 }
 
-export default function ChatPage({ params }: ChatPageProps) {
-  const { id: chatId } = params
+export default async function ChatPage({ params }: ChatPageProps) {
+  const { id: chatId } = await params
 
   return (
     <div className="w-full h-full flex flex-col items-center justify-center">

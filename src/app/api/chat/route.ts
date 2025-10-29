@@ -1,10 +1,23 @@
+import { ObjectId } from 'mongodb'
+import { NextRequest } from 'next/server'
+import type { Message } from '@/types/Conversation'
+import { getDb } from '@/lib/db'
+import { MsgRoles, CollectionNames } from '@/constants/conversation'
+
 export const runtime = 'nodejs'
 
-export async function POST(req: Request) {
-  const { messages } = await req.json()
+export async function POST(req: NextRequest) {
+  const {
+    messages,
+    conversationId,
+  }: { messages: Message[]; conversationId: string } = await req.json()
 
   if (!process.env.OPENAI_API_KEY) {
     return new Response('OpenAI API key not configured', { status: 500 })
+  }
+
+  if (!conversationId) {
+    return new Response('Invalid conversation ID', { status: 400 })
   }
 
   const aiRes = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -18,7 +31,7 @@ export async function POST(req: Request) {
       stream: true,
       messages: messages ?? [
         {
-          role: 'user',
+          role: MsgRoles.USER,
           content: 'Hello, world!',
         },
       ],
@@ -33,13 +46,40 @@ export async function POST(req: Request) {
     })
   }
 
+  const _cid = new ObjectId(conversationId)
+
+  const lastUser = [...messages].reverse().find((m) => m.role === MsgRoles.USER)
+  const userContent = lastUser?.content ?? ''
+
+  try {
+    const db = await getDb()
+    await db?.collection(CollectionNames.CONVERSATIONS).insertOne({
+      role: MsgRoles.USER,
+      content: userContent,
+      conversationId: _cid,
+      createdAt: new Date(),
+    })
+    await db?.collection(CollectionNames.MESSAGES).updateOne(
+      {
+        _id: _cid,
+      },
+      {
+        $set: {
+          updatedAt: new Date(),
+        },
+      }
+    )
+  } catch (error) {
+    console.error('Error updating database:', error)
+  }
+
   const encoder = new TextEncoder()
   const decoder = new TextDecoder()
+  let buffer = ''
 
   const stream = new ReadableStream({
     async start(controller) {
       const reader = aiRes.body!.getReader()
-      let buffer = ''
 
       try {
         while (true) {
@@ -73,6 +113,28 @@ export async function POST(req: Request) {
           }
         }
         controller.close()
+
+        try {
+          const db = await getDb()
+          await db?.collection(CollectionNames.MESSAGES).insertOne({
+            role: MsgRoles.ASSISTANT,
+            content: buffer,
+            conversationId: _cid,
+            createdAt: new Date(),
+          })
+          await db?.collection(CollectionNames.MESSAGES).updateOne(
+            {
+              _id: _cid,
+            },
+            {
+              $set: {
+                updatedAt: new Date(),
+              },
+            }
+          )
+        } catch (e) {
+          console.log(e)
+        }
       } catch (e) {
         controller.error(e)
       }
@@ -86,4 +148,3 @@ export async function POST(req: Request) {
     },
   })
 }
-

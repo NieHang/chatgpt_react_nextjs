@@ -11,7 +11,6 @@ export interface Message {
   _id?: Id
   role: 'user' | 'assistant' | 'system' | 'tool'
   content: string
-  conversationId: Id
-  createdAt: Date
+  conversationId?: Id
+  createdAt?: Date
 }
-
