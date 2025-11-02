@@ -1,8 +1,9 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import AskInput from '@/components/common/AskInput'
 import type { Message } from '@/types/Conversation'
+import AskInput from '@/components/common/AskInput'
+import { apiFetch, fetchJson } from '@/lib/apiFetch'
 import { useRouter, useParams, useSearchParams } from 'next/navigation'
 
 export default function Chat() {
@@ -23,20 +24,24 @@ export default function Chat() {
       if (!content) return
       if (!contentArg) setInput('')
 
-      const newMessages = [...messages, { role: 'user', content }] as Message[]
-      setMessages(newMessages)
+      let newMessages: Message[] = []
+      setMessages((prev) => {
+        newMessages = [...prev, { role: 'user', content }]
+        return newMessages
+      })
 
       abortRef.current?.abort()
       const ac = new AbortController()
       abortRef.current = ac
 
       try {
-        const res = await fetch('/api/chat', {
+        const res = await apiFetch('/api/chat', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
+          json: {
+            messages: newMessages,
+            conversationId,
+            isNewChat: !!initialMessage,
           },
-          body: JSON.stringify({ messages: newMessages, conversationId }),
           signal: ac.signal,
         })
         if (!res.ok || !res.body) {
@@ -80,10 +85,18 @@ export default function Chat() {
             }
           return cp
         })
+      } finally {
+        if (abortRef.current === ac) abortRef.current = null
       }
     },
-    [conversationId, input, messages]
+    [conversationId, input, initialMessage]
   )
+
+  useEffect(() => {
+    return () => {
+      abortRef.current?.abort()
+    }
+  }, [])
 
   useEffect(() => {
     if (!initialMessage || hasSentInitial.current) return
@@ -93,6 +106,19 @@ export default function Chat() {
       router.replace(`/c/${conversationId}`) // Remove initialMessage from URL
     })()
   }, [initialMessage, send, conversationId, router])
+
+  useEffect(() => {
+    ;(async () => {
+      try {
+        const msgs = await fetchJson<Message[]>(
+          `/api/messages?conversationId=${conversationId}`
+        )
+        setMessages(msgs)
+      } catch {
+        setMessages([])
+      }
+    })()
+  }, [conversationId])
 
   return (
     <div className="flex flex-col w-[70%] h-full">
@@ -108,7 +134,7 @@ export default function Chat() {
           </div>
         ))}
       </div>
-      <div className="p-3 flex justify-center gap-2">
+      <div className="m-3 flex justify-center gap-2 sticky bottom-2 z-10">
         <AskInput
           value={input}
           onChange={setInput}

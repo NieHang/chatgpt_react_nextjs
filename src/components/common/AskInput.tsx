@@ -10,7 +10,7 @@ export default function AskInput({
   onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void
 }) {
   return (
-    <div className="w-full flex flex-col items-start p-4 rounded-3xl border border-gray-300">
+    <div className="w-full flex flex-col items-start p-4 rounded-3xl border border-gray-300 bg-white">
       <input
         type="text"
         value={value}

@@ -2,6 +2,42 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { ObjectId } from 'mongodb'
 
+export async function GET(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const db = await getDb()
+    const list = await db!
+      .collection('conversations')
+      .find({
+        conversationId: new ObjectId(params.id),
+      })
+      .project({
+        title: 1,
+        updatedAt: 1,
+        content: 1,
+      })
+      .sort({ updatedAt: -1 })
+      .toArray()
+
+    return NextResponse.json(
+      list.map((c) => ({
+        id: c._id.toString(),
+        title: c.title,
+        content: c.content,
+        updatedAt: c.updatedAt,
+      }))
+    )
+  } catch (error) {
+    console.error(error)
+    return NextResponse.json(
+      { message: 'Failed to fetch conversations' },
+      { status: 500 }
+    )
+  }
+}
+
 export async function PATCH(
   req: NextRequest,
   { params }: { params: { id: string } }
@@ -68,3 +104,4 @@ export async function DELETE(
     )
   }
 }
+
