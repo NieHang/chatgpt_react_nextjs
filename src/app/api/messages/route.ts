@@ -3,10 +3,9 @@ import { getDb } from '@/lib/db'
 import { ObjectId } from 'mongodb'
 
 export async function GET(req: NextRequest) {
+  const conversationId = req.nextUrl.searchParams.get('conversationId')
   try {
     const db = await getDb()
-    const { searchParams } = new URL(req.url)
-    const conversationId = searchParams.get('conversationId')
 
     if (!conversationId || !ObjectId.isValid(conversationId)) {
       return NextResponse.json(

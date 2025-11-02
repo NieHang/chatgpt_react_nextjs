@@ -10,7 +10,9 @@ export async function POST(req: NextRequest) {
   const {
     messages,
     conversationId,
-  }: { messages: Message[]; conversationId: string } = await req.json()
+    isNewChat,
+  }: { messages: Message[]; conversationId: string; isNewChat: boolean } =
+    await req.json()
 
   if (!process.env.OPENAI_API_KEY) {
     return new Response('OpenAI API key not configured', { status: 500 })
@@ -18,6 +20,43 @@ export async function POST(req: NextRequest) {
 
   if (!conversationId) {
     return new Response('Invalid conversation ID', { status: 400 })
+  }
+
+  const _cid = new ObjectId(conversationId)
+
+  const db = await getDb().catch((error) => {
+    console.error('Failed to connect to database:', error)
+    return null
+  })
+  const conversationsCollection = db
+    ? db.collection(CollectionNames.CONVERSATIONS)
+    : null
+  const messagesCollection = db ? db.collection(CollectionNames.MESSAGES) : null
+
+  const runWithDb = async (
+    label: string,
+    fn: () => Promise<void>
+  ): Promise<void> => {
+    if (!db) return
+    try {
+      await fn()
+    } catch (error) {
+      console.error(`${label}:`, error)
+    }
+  }
+
+  const updateConversationTimestamp = async (at: Date) => {
+    if (!messagesCollection) return
+    await messagesCollection.updateOne(
+      {
+        _id: _cid,
+      },
+      {
+        $set: {
+          updatedAt: at,
+        },
+      }
+    )
   }
 
   const aiRes = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -46,40 +85,38 @@ export async function POST(req: NextRequest) {
     })
   }
 
-  const _cid = new ObjectId(conversationId)
-
   const lastUser = [...messages].reverse().find((m) => m.role === MsgRoles.USER)
   const userContent = lastUser?.content ?? ''
 
-  try {
-    const db = await getDb()
-    await db?.collection(CollectionNames.CONVERSATIONS).insertOne({
+  await runWithDb('Error persisting user message', async () => {
+    if (!messagesCollection) return
+
+    const timestamp = new Date()
+    if (isNewChat) {
+      await conversationsCollection?.insertOne({
+        _id: _cid,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      })
+    }
+    await messagesCollection.insertOne({
       role: MsgRoles.USER,
       content: userContent,
       conversationId: _cid,
-      createdAt: new Date(),
+      createdAt: timestamp,
     })
-    await db?.collection(CollectionNames.MESSAGES).updateOne(
-      {
-        _id: _cid,
-      },
-      {
-        $set: {
-          updatedAt: new Date(),
-        },
-      }
-    )
-  } catch (error) {
-    console.error('Error updating database:', error)
-  }
+    await updateConversationTimestamp(timestamp)
+  })
 
   const encoder = new TextEncoder()
   const decoder = new TextDecoder()
   let buffer = ''
+  let assistantContent = ''
 
   const stream = new ReadableStream({
     async start(controller) {
       const reader = aiRes.body!.getReader()
+      let shouldStop = false
 
       try {
         while (true) {
@@ -96,14 +133,15 @@ export async function POST(req: NextRequest) {
 
             const data = trimmed.slice(5).trim()
             if (data === '[DONE]') {
-              controller.close()
-              return
+              shouldStop = true
+              break
             }
 
             try {
               const json = JSON.parse(data)
-              const delta = json.choices[0].delta.content
+              const delta = json.choices?.[0]?.delta?.content
               if (delta) {
+                assistantContent += delta
                 const chunk = encoder.encode(delta)
                 controller.enqueue(chunk)
               }
@@ -111,30 +149,25 @@ export async function POST(req: NextRequest) {
               console.error('Error parsing JSON:', e)
             }
           }
+          if (shouldStop) {
+            break
+          }
+        }
+        if (assistantContent) {
+          await runWithDb('Error persisting assistant message', async () => {
+            if (!messagesCollection) return
+
+            const timestamp = new Date()
+            await messagesCollection.insertOne({
+              role: MsgRoles.ASSISTANT,
+              content: assistantContent,
+              conversationId: _cid,
+              createdAt: timestamp,
+            })
+            await updateConversationTimestamp(timestamp)
+          })
         }
         controller.close()
-
-        try {
-          const db = await getDb()
-          await db?.collection(CollectionNames.MESSAGES).insertOne({
-            role: MsgRoles.ASSISTANT,
-            content: buffer,
-            conversationId: _cid,
-            createdAt: new Date(),
-          })
-          await db?.collection(CollectionNames.MESSAGES).updateOne(
-            {
-              _id: _cid,
-            },
-            {
-              $set: {
-                updatedAt: new Date(),
-              },
-            }
-          )
-        } catch (e) {
-          console.log(e)
-        }
       } catch (e) {
         controller.error(e)
       }
@@ -148,3 +181,4 @@ export async function POST(req: NextRequest) {
     },
   })
 }
+

@@ -50,7 +50,7 @@ export default function SideBar() {
   return (
     <nav
       ref={navRef}
-      className={`overflow-y-auto transition-[width] duration-300 ease-in h-screen p-1 border-r-1 border-gray-100 bg-gray-50`}
+      className={`overflow-y-auto transition-[width] duration-300 ease-in h-auto p-1 border-r-1 border-gray-100 bg-gray-50`}
       style={{ width: cutNav ? '45px' : '260px' }}
     >
       <div className="sticky top-0 flex items-center justify-end pb-2 h-11">
