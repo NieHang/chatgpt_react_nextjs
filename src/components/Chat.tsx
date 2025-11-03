@@ -3,8 +3,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Message } from '@/types/Conversation'
 import AskInput from '@/components/common/AskInput'
-import { apiFetch, fetchJson } from '@/lib/apiFetch'
+import { apiFetch } from '@/lib/apiFetch'
 import { useRouter, useParams, useSearchParams } from 'next/navigation'
+import { getMessages } from '@/lib/http/path/messages'
 
 export default function Chat() {
   const router = useRouter()
@@ -110,9 +111,13 @@ export default function Chat() {
   useEffect(() => {
     ;(async () => {
       try {
-        const msgs = await fetchJson<Message[]>(
-          `/api/messages?conversationId=${conversationId}`
-        )
+        if (!conversationId) {
+          setMessages([])
+          return
+        }
+        const msgs = await getMessages<Message[]>({
+          conversationId: conversationId.toString(),
+        })
         setMessages(msgs)
       } catch {
         setMessages([])

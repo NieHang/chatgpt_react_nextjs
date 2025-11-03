@@ -1,4 +1,4 @@
-import axios from 'axios'
+import axios, { AxiosRequestConfig } from 'axios'
 import {
   handleRequestHeader,
   handleAuth,
@@ -63,11 +63,12 @@ export const Get = <T>(
 export const Post = <T>(
   url: string,
   data: IAnyObj,
-  params: IAnyObj = {}
+  params: IAnyObj = {},
+  config: AxiosRequestConfig = {}
 ): Promise<[any, FcResponse<T> | undefined]> =>
   new Promise((resolve) => {
     axios
-      .post(url, data, { params })
+      .post(url, data, { params, ...config })
       .then((result) => {
         resolve([null, result.data as FcResponse<T>])
       })
