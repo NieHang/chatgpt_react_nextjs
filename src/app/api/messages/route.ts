@@ -10,7 +10,9 @@ export async function GET(req: NextRequest) {
     if (!conversationId || !ObjectId.isValid(conversationId)) {
       return NextResponse.json(
         {
-          error: 'Invalid or missing conversationId',
+          code: 400,
+          message: 'Invalid or missing conversationId',
+          data: [],
         },
         {
           status: 400,
@@ -25,18 +27,22 @@ export async function GET(req: NextRequest) {
       .sort({ createdAt: 1 })
       .toArray()
 
-    return NextResponse.json(
-      messages.map((msg) => ({
+    return NextResponse.json({
+      code: 0,
+      message: 'ok',
+      data: messages.map((msg) => ({
         role: msg.role,
         content: msg.content,
         createdAt: msg.createdAt,
-      }))
-    )
+      })),
+    })
   } catch (error) {
     console.log(error)
     return NextResponse.json(
       {
-        error: 'Internal Server Error',
+        code: 500,
+        message: 'Internal Server Error',
+        data: [],
       },
       {
         status: 500,
@@ -44,4 +50,3 @@ export async function GET(req: NextRequest) {
     )
   }
 }
-

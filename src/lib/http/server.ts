@@ -49,7 +49,7 @@ export const Get = <T>(
       .then((result) => {
         let res: FcResponse<T>
         if (cb !== undefined) {
-          res = cb(result.data) as FcResponse<T>
+          res = cb(result.data) as unknown as FcResponse<T>
         } else {
           res = result.data as FcResponse<T>
         }

@@ -110,18 +110,18 @@ export default function Chat() {
 
   useEffect(() => {
     ;(async () => {
-      try {
-        if (!conversationId) {
-          setMessages([])
-          return
-        }
-        const msgs = await getMessages<Message[]>({
-          conversationId: conversationId.toString(),
-        })
-        setMessages(msgs)
-      } catch {
+      if (!conversationId) {
         setMessages([])
+        return
       }
+      const [error, msgs] = await getMessages<Message[]>({
+        conversationId: conversationId.toString(),
+      })
+      if (error || !msgs?.data) {
+        setMessages([])
+        return
+      }
+      setMessages(msgs.data)
     })()
   }, [conversationId])
 
@@ -132,10 +132,10 @@ export default function Chat() {
           <div
             key={index}
             className={`bg-[#F4F4F4] text-black px-4 rounded-[18px] py-1.5 data-[multiline]:py-3 max-w-lg ${
-              msg.role === 'user' ? 'place-self-end' : 'place-self-start'
+              msg?.role === 'user' ? 'place-self-end' : 'place-self-start'
             }`}
           >
-            {msg.content}
+            {msg?.content}
           </div>
         ))}
       </div>
