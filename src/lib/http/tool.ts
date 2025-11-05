@@ -68,6 +68,6 @@ export const handleNetworkError = (errStatus: number) => {
 }
 
 export const handleGeneralError = (error) => {
-  console.error('Error:', error.message)
+  if (error) console.error('Error:', error.message)
 }
 
