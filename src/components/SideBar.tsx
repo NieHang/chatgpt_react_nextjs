@@ -2,11 +2,18 @@
 
 import Image from 'next/image'
 import { useEffect, useRef, useState } from 'react'
+import { getConversations } from '@/lib/http/path/messages'
+import type { Conversation } from '@/types/Conversation'
+import { useRouter, useParams } from 'next/navigation'
 
 export default function SideBar() {
+  const router = useRouter()
+  const { id: currentConversationId } = useParams()
+
   const [cutNav, setCutNav] = useState(false)
   const [imgSrc, setIconImgSrc] = useState('/sidebar/gpt.svg')
   const [showBorder, setShowBorder] = useState(false)
+  const [conversations, setConversations] = useState<Array<Conversation>>([])
   const navRef = useRef<HTMLElement>(null)
   const debounceTimer = useRef<NodeJS.Timeout | null>(null)
 
@@ -46,6 +53,23 @@ export default function SideBar() {
       }
     }
   }, [])
+
+  useEffect(() => {
+    ;(async () => {
+      try {
+        const [error, res] = await getConversations<Conversation[]>()
+        if (error || !res?.data) return
+        setConversations(res.data)
+      } catch (error) {
+        console.error('Error fetching conversations:', error)
+      }
+    })()
+  }, [])
+
+  function handleConversationClick(id?: string) {
+    if (id === currentConversationId) return
+    router.push(`/c/${id}`)
+  }
 
   return (
     <nav
@@ -133,6 +157,21 @@ export default function SideBar() {
               </div>
             </div>
           </a>
+        ))}
+      </aside>
+      <aside className="pt-2">
+        {conversations.map((item) => (
+          <div
+            key={item?.id}
+            className={`sidebar-item flex flex-row items-center w-auto`}
+            onClick={() => handleConversationClick(item?.id)}
+          >
+            <div
+              className={`w-full overflow-ellipsis overflow-hidden text-sm whitespace-nowrap`}
+            >
+              {item?.content}
+            </div>
+          </div>
         ))}
       </aside>
     </nav>

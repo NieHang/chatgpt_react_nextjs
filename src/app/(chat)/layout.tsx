@@ -5,22 +5,27 @@ import Image from 'next/image'
 
 export default function ChatLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="flex h-full w-full">
+    <div className="flex h-screen w-full">
       <SideBar />
-      <section className="relative w-full p-1 flex items-center justify-center">
-        <div className="absolute top-1 left-1 right-1 flex items-center justify-between">
-          <ModelSwitch />
-          <div className="p-2 rounded-2xl hover:bg-gray-200 cursor-pointer">
-            <Image
-              src="/common/temp-chat.svg"
-              alt="temp-chat"
-              width={20}
-              height={20}
-            />
+      <section className="relative w-full flex flex-col items-center">
+        <div className="w-full sticky top-0 border-b-1 border-gray-200">
+          <div className="p-2 flex items-center justify-between bg-white z-10">
+            <ModelSwitch />
+            <div className="p-2 rounded-2xl hover:bg-gray-200 cursor-pointer">
+              <Image
+                src="/common/temp-chat.svg"
+                alt="temp-chat"
+                width={20}
+                height={20}
+              />
+            </div>
           </div>
         </div>
-        {children}
+        <div className="w-full h-full flex items-center justify-center">
+          {children}
+        </div>
       </section>
     </div>
   )
 }
+

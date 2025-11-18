@@ -8,3 +8,7 @@ export function getMessages<T>({
   return Get<T>('/api/messages', { conversationId })
 }
 
+export function getConversations<T>(conversationId?: number): ApiResponse<T> {
+  return Get<T>('/api/conversations', { conversationId })
+}
+

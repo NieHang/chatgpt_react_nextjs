@@ -10,7 +10,7 @@ export default async function ChatPage({ params }: ChatPageProps) {
   const { id: chatId } = await params
 
   return (
-    <div className="w-full h-full flex flex-col items-center justify-center">
+    <div className="w-full h-screen flex flex-col items-center justify-center">
       <Chat key={chatId} />
     </div>
   )

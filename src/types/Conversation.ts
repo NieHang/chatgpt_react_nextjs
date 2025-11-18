@@ -1,8 +1,9 @@
 export type Id = string
 
 export interface Conversation {
-  _id?: Id
-  title: string
+  id?: Id
+  title?: string
+  content: string
   createdAt: Date
   updatedAt: Date
 }
@@ -14,3 +15,4 @@ export interface Message {
   conversationId?: Id
   createdAt?: Date
 }
+

@@ -4,15 +4,19 @@ import { ObjectId } from 'mongodb'
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { conversationId?: string } }
 ) {
   try {
     const db = await getDb()
     const list = await db!
       .collection('conversations')
-      .find({
-        conversationId: new ObjectId(params.id),
-      })
+      .find(
+        params?.conversationId
+          ? {
+              conversationId: new ObjectId(params.conversationId),
+            }
+          : {}
+      )
       .project({
         title: 1,
         updatedAt: 1,
@@ -21,14 +25,16 @@ export async function GET(
       .sort({ updatedAt: -1 })
       .toArray()
 
-    return NextResponse.json(
-      list.map((c) => ({
+    return NextResponse.json({
+      code: 0,
+      message: 'ok',
+      data: list.map((c) => ({
         id: c._id.toString(),
         title: c.title,
         content: c.content,
         updatedAt: c.updatedAt,
-      }))
-    )
+      })),
+    })
   } catch (error) {
     console.error(error)
     return NextResponse.json(
@@ -104,4 +110,3 @@ export async function DELETE(
     )
   }
 }
-

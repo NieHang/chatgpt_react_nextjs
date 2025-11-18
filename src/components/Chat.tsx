@@ -126,8 +126,8 @@ export default function Chat() {
   }, [conversationId])
 
   return (
-    <div className="flex flex-col w-[70%] h-full">
-      <div className="flex-1 overflow-auto p-4 space-y-3">
+    <div className="relative flex flex-col w-[70%] h-full">
+      <div className="p-8 space-y-3 h-[80%] overflow-y-auto scrollbar-hide">
         {messages.map((msg, index) => (
           <div
             key={index}
@@ -139,7 +139,7 @@ export default function Chat() {
           </div>
         ))}
       </div>
-      <div className="m-3 flex justify-center gap-2 sticky bottom-2 z-10">
+      <div className="w-full m-3 flex justify-center gap-2 absolute bottom-2 z-10">
         <AskInput
           value={input}
           onChange={setInput}
