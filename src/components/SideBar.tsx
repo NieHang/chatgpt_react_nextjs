@@ -97,17 +97,16 @@ export default function SideBar() {
             }}
           />
         </div>
-        <div
-          className={`sidebar-item ${cutNav ? 'hidden' : ''}`}
-          onClick={() => setCutNav(!cutNav)}
-        >
-          <Image
-            src="/sidebar/close-bar.svg"
-            alt="Close sidebar"
-            width={20}
-            height={20}
-          />
-        </div>
+        {!cutNav && (
+          <div className="sidebar-item" onClick={() => setCutNav(!cutNav)}>
+            <Image
+              src="/sidebar/close-bar.svg"
+              alt="Close sidebar"
+              width={20}
+              height={20}
+            />
+          </div>
+        )}
       </div>
       <aside
         className={`${
@@ -116,13 +115,15 @@ export default function SideBar() {
       >
         {features.map((feature) => (
           <div className="pb-2" key={feature.label}>
-            <div className={`sidebar-item flex flex-row items-center w-auto`}>
-              <Image
-                src={feature.src}
-                alt={feature.label}
-                width={20}
-                height={20}
-              />
+            <div className={`sidebar-item`}>
+              <div className="shrink-0">
+                <Image
+                  src={feature.src}
+                  alt={feature.label}
+                  width={20}
+                  height={20}
+                />
+              </div>
               <div
                 className={`text-sm ml-1 whitespace-nowrap transition-[opacity] duration-300 ease-in`}
                 style={{ opacity: cutNav ? 0 : 1 }}
@@ -141,14 +142,16 @@ export default function SideBar() {
             rel="noopener noreferrer"
             key={index}
           >
-            <div className="sidebar-item flex flex-row items-center w-full">
-              <Image
-                src={link.src}
-                alt={link.label}
-                width={20}
-                height={20}
-                className="shrink-0"
-              />
+            <div className="sidebar-item">
+              <div className="shrink-0">
+                <Image
+                  src={link.src}
+                  alt={link.label}
+                  width={20}
+                  height={20}
+                  className="shrink-0"
+                />
+              </div>
               <div
                 className={`text-sm ml-1 whitespace-nowrap transition-[opacity] duration-300 ease-in`}
                 style={{ opacity: cutNav ? 0 : 1 }}
