@@ -3,6 +3,7 @@ import { NextRequest } from 'next/server'
 import type { Message } from '@/types/Conversation'
 import { getDb } from '@/lib/db'
 import { MsgRoles, CollectionNames } from '@/constants/conversation'
+import { ProxyAgent } from 'undici'
 
 export const runtime = 'nodejs'
 
@@ -59,7 +60,9 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  const aiRes = await fetch('https://api.openai.com/v1/chat/completions', {
+  const proxyUrl = process.env.HTTPS_PROXY || process.env.HTTP_PROXY
+  const dispatcher = proxyUrl ? new ProxyAgent(proxyUrl) : undefined
+  const fetchOptions: RequestInit & { dispatcher?: unknown } = {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -76,7 +79,13 @@ export async function POST(req: NextRequest) {
       ],
       temperature: 0.7,
     }),
-  })
+  }
+  if (dispatcher) fetchOptions.dispatcher = dispatcher
+
+  const aiRes = await fetch(
+    'https://api.openai.com/v1/chat/completions',
+    fetchOptions
+  )
 
   if (!aiRes.ok || !aiRes.body) {
     const text = await aiRes.text().catch(() => '<no body>')
@@ -181,4 +190,3 @@ export async function POST(req: NextRequest) {
     },
   })
 }
-
