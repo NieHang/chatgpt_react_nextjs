@@ -39,7 +39,7 @@ export default function Chat() {
         const res = await apiFetch('/api/chat', {
           method: 'POST',
           json: {
-            messages: newMessages,
+            messages,
             conversationId,
             isNewChat: !!initialMessage,
           },
@@ -139,7 +139,7 @@ export default function Chat() {
           </div>
         ))}
       </div>
-      <div className="w-full m-3 flex justify-center gap-2 absolute bottom-2 z-10">
+      <div className="w-full m-3 flex justify-center gap-2 absolute bottom-[60px] z-10">
         <AskInput
           value={input}
           onChange={setInput}
