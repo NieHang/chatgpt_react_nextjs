@@ -17,6 +17,9 @@ export function apiFetch(
     ...rest,
     body: json !== undefined ? JSON.stringify(json) : body,
     headers: mergedHeaders,
+  }).catch((error) => {
+    console.error('Network error:', error)
+    throw error
   })
 }
 
@@ -35,3 +38,4 @@ export async function fetchJson<T>(
 
   return (await response.json()) as T
 }
+

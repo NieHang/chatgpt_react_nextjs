@@ -18,7 +18,7 @@ export default function SideBar() {
   const debounceTimer = useRef<NodeJS.Timeout | null>(null)
 
   const features = [
-    { src: '/sidebar/edit.svg', label: 'New Chat' },
+    { src: '/sidebar/edit.svg', label: 'New Chat', fn: () => router.push('/') },
     { src: '/sidebar/search.svg', label: 'Search Chats' },
     { src: '/sidebar/library.svg', label: 'Library' },
   ]
@@ -114,7 +114,7 @@ export default function SideBar() {
         } sticky top-[44px] bg-gray-50`}
       >
         {features.map((feature) => (
-          <div className="pb-2" key={feature.label}>
+          <div className="pb-2" key={feature.label} onClick={feature.fn}>
             <div className={`sidebar-item`}>
               <div className="shrink-0">
                 <Image
@@ -166,7 +166,10 @@ export default function SideBar() {
         {conversations.map((item) => (
           <div
             key={item?.id}
-            className={`sidebar-item flex flex-row items-center w-auto`}
+            className={`sidebar-item ${
+              item.id === currentConversationId ? 'bg-gray-200' : ''
+            } transition-[opacity] duration-300 ease-in`}
+            style={{ opacity: cutNav ? 0 : 1 }}
             onClick={() => handleConversationClick(item?.id)}
           >
             <div
