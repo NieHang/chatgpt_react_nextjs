@@ -2,25 +2,24 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { ObjectId } from 'mongodb'
 
-export async function GET(
-  req: NextRequest,
-  { params }: { params: { conversationId?: string } }
-) {
+export async function GET(req: NextRequest) {
   try {
+    const conversationId = req.nextUrl.searchParams.get('conversationId')
     const db = await getDb()
     const list = await db!
       .collection('conversations')
       .find(
-        params?.conversationId
+        conversationId
           ? {
-              conversationId: new ObjectId(params.conversationId),
+              _id: new ObjectId(conversationId),
             }
-          : {}
+          : {},
       )
       .project({
         title: 1,
-        updatedAt: 1,
+        messages: 1,
         content: 1,
+        updatedAt: 1,
       })
       .sort({ updatedAt: -1 })
       .toArray()
@@ -30,7 +29,7 @@ export async function GET(
       message: 'ok',
       data: list.map((c) => ({
         id: c._id.toString(),
-        title: c.title,
+        messages: c.messages,
         content: c.content,
         updatedAt: c.updatedAt,
       })),
@@ -39,28 +38,26 @@ export async function GET(
     console.error(error)
     return NextResponse.json(
       { message: 'Failed to fetch conversations' },
-      { status: 500 }
+      { status: 500 },
     )
   }
 }
 
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function PATCH(req: NextRequest) {
   try {
+    const id = req.nextUrl.searchParams.get('id')
     const db = await getDb()
     const { title } = await req.json()
     if (typeof title !== 'string' || title.trim() === '') {
       return NextResponse.json({ message: 'Invalid title' }, { status: 400 })
     }
-    if (!ObjectId.isValid(params.id)) {
+    if (!ObjectId.isValid(id!)) {
       return NextResponse.json(
         { message: 'Invalid conversation ID' },
-        { status: 400 }
+        { status: 400 },
       )
     }
-    const _id = new ObjectId(params.id)
+    const _id = new ObjectId(id!)
     await db!.collection('conversations').updateOne(
       { _id },
       {
@@ -68,7 +65,7 @@ export async function PATCH(
           title: title.trim(),
           updatedAt: new Date(),
         },
-      }
+      },
     )
     return NextResponse.json({
       ok: true,
@@ -77,26 +74,24 @@ export async function PATCH(
     console.error(error)
     return NextResponse.json(
       { message: 'Failed to update conversation' },
-      { status: 500 }
+      { status: 500 },
     )
   }
 }
 
-export async function DELETE(
-  req: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function DELETE(req: NextRequest) {
   try {
+    const id = req.nextUrl.searchParams.get('id')
     const db = await getDb()
-    if (!ObjectId.isValid(params.id)) {
+    if (!ObjectId.isValid(id!)) {
       return NextResponse.json(
         { message: 'Invalid conversation ID' },
-        { status: 400 }
+        { status: 400 },
       )
     }
-    const _id = new ObjectId(params.id)
+    const _id = new ObjectId(id!)
     await db!.collection('messages').deleteMany({
-      conversationId: params.id,
+      conversationId: id,
     })
     await db!.collection('conversations').deleteOne({ _id })
     return NextResponse.json({
@@ -106,7 +101,7 @@ export async function DELETE(
     console.error(error)
     return NextResponse.json(
       { message: 'Failed to delete conversation' },
-      { status: 500 }
+      { status: 500 },
     )
   }
 }

@@ -3,9 +3,11 @@ export const MsgRoles = {
   ASSISTANT: 'assistant',
   SYSTEM: 'system',
   TOOL: 'tool',
-}
+} as const
 
 export const CollectionNames = {
   CONVERSATIONS: 'conversations',
   MESSAGES: 'messages',
 }
+
+export type MsgRole = (typeof MsgRoles)[keyof typeof MsgRoles]

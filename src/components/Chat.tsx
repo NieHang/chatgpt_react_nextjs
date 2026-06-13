@@ -1,11 +1,12 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { Message } from '@/types/Conversation'
+import type { Conversation, ConversationMessage } from '@/types/Conversation'
 import AskInput from '@/components/common/AskInput'
 import { apiFetch } from '@/lib/apiFetch'
 import { useRouter, useParams, useSearchParams } from 'next/navigation'
-import { getMessages } from '@/lib/http/path/messages'
+import { getConversations } from '@/lib/http/path/messages'
+import { MsgRoles } from '@/constants/conversation'
 
 export default function Chat() {
   const router = useRouter()
@@ -13,7 +14,7 @@ export default function Chat() {
   const searchParams = useSearchParams()
   const initialMessage = searchParams.get('initialMessage')
 
-  const [messages, setMessages] = useState<Message[]>([])
+  const [messages, setMessages] = useState<ConversationMessage[]>([])
   const [input, setInput] = useState('')
   const abortRef = useRef<AbortController | null>(null)
   const { id: conversationId } = useParams()
@@ -25,9 +26,12 @@ export default function Chat() {
       if (!content) return
       if (!contentArg) setInput('')
 
-      let newMessages: Message[] = []
+      let newMessages: ConversationMessage[] = []
       setMessages((prev) => {
-        newMessages = [...prev, { role: 'user', content }]
+        newMessages = [
+          ...prev,
+          { role: MsgRoles.USER, content, createdAt: new Date() },
+        ]
         return newMessages
       })
 
@@ -39,7 +43,7 @@ export default function Chat() {
         const res = await apiFetch('/api/chat', {
           method: 'POST',
           json: {
-            messages,
+            messages: newMessages,
             conversationId,
             isNewChat: !!initialMessage,
           },
@@ -65,7 +69,7 @@ export default function Chat() {
           setMessages((prev) => {
             const cp = [...prev]
             const i = cp.findIndex(
-              (m, index) => m.role === 'assistant' && index === cp.length - 1
+              (m, index) => m.role === 'assistant' && index === cp.length - 1,
             )
             if (i >= 0) cp[i] = { ...cp[i], content: cp[i].content + chunk }
             else cp.push({ role: 'assistant', content: chunk })
@@ -76,7 +80,7 @@ export default function Chat() {
         setMessages((prev) => {
           const cp = [...prev]
           const i = cp.findIndex(
-            (m, index) => m.role === 'assistant' && index === cp.length - 1
+            (m, index) => m.role === 'assistant' && index === cp.length - 1,
           )
           if (i >= 0)
             cp[i] = {
@@ -90,9 +94,8 @@ export default function Chat() {
         if (abortRef.current === ac) abortRef.current = null
       }
     },
-    [conversationId, input, initialMessage]
+    [conversationId, input, initialMessage],
   )
-
 
   useEffect(() => {
     if (!initialMessage || hasSentInitial.current) return
@@ -109,14 +112,14 @@ export default function Chat() {
         setMessages([])
         return
       }
-      const [error, msgs] = await getMessages<Message[]>({
-        conversationId: conversationId.toString(),
-      })
-      if (error || !msgs?.data) {
+      const [error, result] = await getConversations<Conversation[]>(
+        conversationId as string,
+      )
+      if (error || !result?.data) {
         setMessages([])
         return
       }
-      setMessages(msgs.data)
+      setMessages((prev) => [...prev, ...result.data[0].messages])
     })()
   }, [conversationId])
 
@@ -146,4 +149,3 @@ export default function Chat() {
     </div>
   )
 }
-
