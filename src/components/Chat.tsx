@@ -19,6 +19,7 @@ export default function Chat() {
   const abortRef = useRef<AbortController | null>(null)
   const { id: conversationId } = useParams()
   const hasSentInitial = useRef(false)
+  const loadedConversationId = useRef<string | null>(null)
 
   const send = useCallback(
     async (contentArg?: string) => {
@@ -43,7 +44,7 @@ export default function Chat() {
         const res = await apiFetch('/api/chat', {
           method: 'POST',
           json: {
-            messages: newMessages,
+            messages,
             conversationId,
             isNewChat: !!initialMessage,
           },
@@ -110,16 +111,21 @@ export default function Chat() {
     ;(async () => {
       if (!conversationId) {
         setMessages([])
+        loadedConversationId.current = null
         return
       }
+      if (loadedConversationId.current === conversationId) return
+
+      loadedConversationId.current = conversationId as string
+
       const [error, result] = await getConversations<Conversation[]>(
-        conversationId as string,
+        loadedConversationId.current,
       )
       if (error || !result?.data) {
         setMessages([])
         return
       }
-      setMessages((prev) => [...prev, ...result.data[0].messages])
+      setMessages(result.data[0]?.messages ?? [])
     })()
   }, [conversationId])
 
