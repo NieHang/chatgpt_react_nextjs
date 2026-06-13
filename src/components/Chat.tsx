@@ -27,14 +27,16 @@ export default function Chat() {
       if (!content) return
       if (!contentArg) setInput('')
 
-      let newMessages: ConversationMessage[] = []
-      setMessages((prev) => {
-        newMessages = [
-          ...prev,
-          { role: MsgRoles.USER, content, createdAt: new Date() },
-        ]
-        return newMessages
-      })
+      const nextMessages: ConversationMessage[] = [
+        ...messages,
+        {
+          role: MsgRoles.USER,
+          content,
+          createdAt: new Date(),
+        },
+      ]
+
+      setMessages(nextMessages)
 
       abortRef.current?.abort()
       const ac = new AbortController()
@@ -44,7 +46,7 @@ export default function Chat() {
         const res = await apiFetch('/api/chat', {
           method: 'POST',
           json: {
-            messages,
+            messages: nextMessages,
             conversationId,
             isNewChat: !!initialMessage,
           },
@@ -70,10 +72,16 @@ export default function Chat() {
           setMessages((prev) => {
             const cp = [...prev]
             const i = cp.findIndex(
-              (m, index) => m.role === 'assistant' && index === cp.length - 1,
+              (m, index) =>
+                m.role === MsgRoles.ASSISTANT && index === cp.length - 1,
             )
             if (i >= 0) cp[i] = { ...cp[i], content: cp[i].content + chunk }
-            else cp.push({ role: 'assistant', content: chunk })
+            else
+              cp.push({
+                role: MsgRoles.ASSISTANT,
+                content: chunk,
+                createdAt: new Date(),
+              })
             return cp
           })
         }
@@ -81,7 +89,8 @@ export default function Chat() {
         setMessages((prev) => {
           const cp = [...prev]
           const i = cp.findIndex(
-            (m, index) => m.role === 'assistant' && index === cp.length - 1,
+            (m, index) =>
+              m.role === MsgRoles.ASSISTANT && index === cp.length - 1,
           )
           if (i >= 0)
             cp[i] = {
@@ -114,6 +123,9 @@ export default function Chat() {
         loadedConversationId.current = null
         return
       }
+
+      if (initialMessage) return
+
       if (loadedConversationId.current === conversationId) return
 
       loadedConversationId.current = conversationId as string
@@ -127,7 +139,7 @@ export default function Chat() {
       }
       setMessages(result.data[0]?.messages ?? [])
     })()
-  }, [conversationId])
+  }, [conversationId, initialMessage])
 
   return (
     <div className="relative flex flex-col w-[70%] h-full">
