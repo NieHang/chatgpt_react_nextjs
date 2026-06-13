@@ -93,11 +93,6 @@ export default function Chat() {
     [conversationId, input, initialMessage]
   )
 
-  useEffect(() => {
-    return () => {
-      abortRef.current?.abort()
-    }
-  }, [])
 
   useEffect(() => {
     if (!initialMessage || hasSentInitial.current) return
