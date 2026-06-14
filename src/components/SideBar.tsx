@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from 'react'
 import { getConversations } from '@/lib/http/path/messages'
 import type { Conversation } from '@/types/Conversation'
 import { useRouter, useParams } from 'next/navigation'
+import clsx from 'clsx'
 
 export default function SideBar() {
   const router = useRouter()
@@ -74,10 +75,19 @@ export default function SideBar() {
   return (
     <nav
       ref={navRef}
-      className={`overflow-y-auto transition-[width] duration-300 ease-in h-auto px-1 border-r-1 border-gray-100 bg-gray-50`}
-      style={{ width: cutNav ? '45px' : '260px' }}
+      className={clsx(
+        'overflow-y-auto transition-[width] duration-300 ease-in h-auto',
+        'px-1 border-r-1 border-gray-100 bg-gray-50',
+      )}
+      style={{ width: cutNav ? '55px' : '260px' }}
     >
-      <div className="sticky top-0 flex items-center justify-end pb-2 h-11 bg-gray-50">
+      <div
+        className={clsx(
+          'sticky top-0',
+          'flex items-center justify-end',
+          'pb-1 h-11 bg-gray-50',
+        )}
+      >
         <div
           className="sidebar-item absolute top-0 left-0"
           onClick={() => {
@@ -114,7 +124,11 @@ export default function SideBar() {
         } sticky top-[44px] bg-gray-50`}
       >
         {features.map((feature) => (
-          <div className="pb-2" key={feature.label} onClick={feature.fn}>
+          <div
+            className="pb-2 last:pb-0"
+            key={feature.label}
+            onClick={feature.fn}
+          >
             <div className={`sidebar-item`}>
               <div className="shrink-0">
                 <Image
@@ -134,7 +148,7 @@ export default function SideBar() {
           </div>
         ))}
       </aside>
-      <aside className="pt-2">
+      <aside>
         {links.map((link, index) => (
           <a
             href={link.link}
@@ -162,7 +176,7 @@ export default function SideBar() {
           </a>
         ))}
       </aside>
-      <aside className="pt-2">
+      <aside className="flex flex-col gap-2 pt-2">
         {conversations.map((item) => (
           <div
             key={item?.id}
