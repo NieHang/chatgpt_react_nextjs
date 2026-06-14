@@ -87,7 +87,7 @@ export async function POST(req: NextRequest) {
   const lastUser = [...messages].reverse().find((m) => m.role === MsgRoles.USER)
   const userContent = lastUser?.content ?? ''
 
-  await runWithDb('Error persisting user message', async () => {
+  await runWithDb('Error persisting user conversation', async () => {
     if (!messagesCollection) return
 
     const timestamp = new Date()

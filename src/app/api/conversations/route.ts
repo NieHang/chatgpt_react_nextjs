@@ -29,6 +29,7 @@ export async function GET(req: NextRequest) {
       message: 'ok',
       data: list.map((c) => ({
         id: c._id.toString(),
+        title: c.title,
         messages: c.messages,
         content: c.content,
         updatedAt: c.updatedAt,
@@ -90,9 +91,6 @@ export async function DELETE(req: NextRequest) {
       )
     }
     const _id = new ObjectId(id!)
-    await db!.collection('messages').deleteMany({
-      conversationId: id,
-    })
     await db!.collection('conversations').deleteOne({ _id })
     return NextResponse.json({
       ok: true,
