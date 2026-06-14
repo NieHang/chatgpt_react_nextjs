@@ -1,5 +1,10 @@
-import { Get, type ApiResponse } from '@/lib/http/server'
+import { fetchJson } from '@/lib/apiFetch'
+import { Conversation } from '@/types/Conversation'
 
-export function getConversations<T>(conversationId?: string): ApiResponse<T> {
-  return Get<T>('/api/conversations', { conversationId })
+export function getConversations(conversationId?: string) {
+  return fetchJson<Conversation[]>(
+    !!conversationId
+      ? `/api/conversations?conversationId=${conversationId}`
+      : '/api/conversations',
+  )
 }
