@@ -1,19 +1,17 @@
-import axios from 'axios'
+import { AxiosHeaders, type InternalAxiosRequestConfig } from 'axios'
 
-export const handleRequestHeader = (config) => {
-  config.headers = {
-    ...config.headers,
-    'Content-Type': 'application/json',
-  }
+export const handleRequestHeader = (config: InternalAxiosRequestConfig) => {
+  const headers = new AxiosHeaders(config.headers)
+  headers.set('Content-Type', 'application/json')
+  config.headers = headers
   return config
 }
 
-export const handleAuth = (config) => {
+export const handleAuth = (config: InternalAxiosRequestConfig) => {
   // Add authentication token if needed
-  config.headers = {
-    ...config.headers,
-    token: localStorage.getItem('token') || '',
-  }
+  const headers = new AxiosHeaders(config.headers)
+  headers.set('token', localStorage.getItem('token') || '')
+  config.headers = headers
   return config
 }
 
@@ -67,7 +65,7 @@ export const handleNetworkError = (errStatus: number) => {
   console.error(errMessage)
 }
 
-export const handleGeneralError = (error) => {
+export const handleGeneralError = (error: { message?: string } | null) => {
   if (error) console.error('Error:', error.message)
 }
 
