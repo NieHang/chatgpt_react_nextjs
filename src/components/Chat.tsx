@@ -6,12 +6,15 @@ import AskInput from '@/components/common/AskInput'
 import { useRouter, useParams, useSearchParams } from 'next/navigation'
 import { getConversations, chat } from '@/lib/http/path/messages'
 import { MsgRoles } from '@/constants/conversation'
+import { useConversations } from '@/providers/ConversationProvider'
 
 export default function Chat() {
   const router = useRouter()
 
   const searchParams = useSearchParams()
   const initialMessage = searchParams.get('initialMessage')
+
+  const { refreshConversations } = useConversations()
 
   const [messages, setMessages] = useState<ConversationMessage[]>([])
   const [input, setInput] = useState('')
@@ -42,7 +45,7 @@ export default function Chat() {
       abortRef.current = ac
 
       try {
-        const { data: res } = await chat({
+        const res = await chat({
           messages: nextMessages,
           conversationId,
           isNewChat: !!initialMessage,
@@ -108,9 +111,10 @@ export default function Chat() {
     hasSentInitial.current = true
     ;(async () => {
       await send(initialMessage)
+      await refreshConversations()
       router.replace(`/c/${conversationId}`) // Remove initialMessage from URL
     })()
-  }, [initialMessage, send, conversationId, router])
+  }, [initialMessage, send, conversationId, router, refreshConversations])
 
   useEffect(() => {
     ;(async () => {

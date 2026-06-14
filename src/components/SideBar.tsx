@@ -2,19 +2,19 @@
 
 import Image from 'next/image'
 import { useEffect, useRef, useState } from 'react'
-import { getConversations } from '@/lib/http/path/messages'
-import type { Conversation } from '@/types/Conversation'
 import { useRouter, useParams } from 'next/navigation'
 import clsx from 'clsx'
+import { useConversations } from '@/providers/ConversationProvider'
 
 export default function SideBar() {
   const router = useRouter()
   const { id: currentConversationId } = useParams()
 
+  const { conversations } = useConversations()
+
   const [cutNav, setCutNav] = useState(false)
   const [imgSrc, setIconImgSrc] = useState('/sidebar/gpt.svg')
   const [showBorder, setShowBorder] = useState(false)
-  const [conversations, setConversations] = useState<Array<Conversation>>([])
   const navRef = useRef<HTMLElement>(null)
   const debounceTimer = useRef<NodeJS.Timeout | null>(null)
 
@@ -53,18 +53,6 @@ export default function SideBar() {
         if (debounceTimer.current) clearTimeout(debounceTimer.current)
       }
     }
-  }, [])
-
-  useEffect(() => {
-    ;(async () => {
-      try {
-        const res = await getConversations()
-        if (!res?.data) return
-        setConversations(res.data)
-      } catch (error) {
-        console.error('Error fetching conversations:', error)
-      }
-    })()
   }, [])
 
   function handleConversationClick(id?: string) {
