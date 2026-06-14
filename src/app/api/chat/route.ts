@@ -8,6 +8,7 @@ import type {
 import { getDb } from '@/lib/db'
 import { MsgRoles, CollectionNames } from '@/constants/conversation'
 import { ProxyAgent } from 'undici'
+import generateTitle from '@/app/api/chat/generateTitle'
 
 export const runtime = 'nodejs'
 
@@ -97,8 +98,10 @@ export async function POST(req: NextRequest) {
       createdAt: timestamp,
     }
     if (isNewChat) {
+      const title = await generateTitle(userContent, { dispatcher })
       await conversationsCollection?.insertOne({
         _id: _cid,
+        title,
         messages: [messages],
         createdAt: timestamp,
         updatedAt: timestamp,
