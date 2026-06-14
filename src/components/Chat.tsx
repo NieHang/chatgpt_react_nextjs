@@ -3,9 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { ConversationMessage } from '@/types/Conversation'
 import AskInput from '@/components/common/AskInput'
-import { apiFetch } from '@/lib/apiFetch'
 import { useRouter, useParams, useSearchParams } from 'next/navigation'
-import { getConversations } from '@/lib/http/path/messages'
+import { getConversations, chat } from '@/lib/http/path/messages'
 import { MsgRoles } from '@/constants/conversation'
 
 export default function Chat() {
@@ -43,13 +42,10 @@ export default function Chat() {
       abortRef.current = ac
 
       try {
-        const res = await apiFetch('/api/chat', {
-          method: 'POST',
-          json: {
-            messages: nextMessages,
-            conversationId,
-            isNewChat: !!initialMessage,
-          },
+        const { data: res } = await chat({
+          messages: nextMessages,
+          conversationId,
+          isNewChat: !!initialMessage,
           signal: ac.signal,
         })
         if (!res.ok || !res.body) {

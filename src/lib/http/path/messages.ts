@@ -1,5 +1,6 @@
 import { fetchJson } from '@/lib/apiFetch'
-import { Conversation } from '@/types/Conversation'
+import { Conversation, ConversationMessage } from '@/types/Conversation'
+import { ParamValue } from 'next/dist/server/request/params'
 
 export function getConversations(conversationId?: string) {
   return fetchJson<Conversation[]>(
@@ -8,3 +9,26 @@ export function getConversations(conversationId?: string) {
       : '/api/conversations',
   )
 }
+
+export function chat({
+  messages,
+  conversationId,
+  isNewChat,
+  signal,
+}: {
+  messages: ConversationMessage[]
+  conversationId: ParamValue
+  isNewChat: boolean
+  signal?: AbortSignal
+}) {
+  return fetchJson<Response>('/api/chat', {
+    method: 'POST',
+    json: {
+      messages,
+      conversationId,
+      isNewChat,
+    },
+    signal,
+  })
+}
+
