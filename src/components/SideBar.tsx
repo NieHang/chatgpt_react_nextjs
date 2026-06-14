@@ -57,8 +57,8 @@ export default function SideBar() {
   useEffect(() => {
     ;(async () => {
       try {
-        const [error, res] = await getConversations<Conversation[]>()
-        if (error || !res?.data) return
+        const res = await getConversations()
+        if (!res?.data) return
         setConversations(res.data)
       } catch (error) {
         console.error('Error fetching conversations:', error)
@@ -175,7 +175,7 @@ export default function SideBar() {
             <div
               className={`w-full overflow-ellipsis overflow-hidden text-sm whitespace-nowrap`}
             >
-              {item?.content}
+              {item?.title ?? item?.content ?? item?.messages?.[0]?.content}
             </div>
           </div>
         ))}
@@ -183,4 +183,3 @@ export default function SideBar() {
     </nav>
   )
 }
-

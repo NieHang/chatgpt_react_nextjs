@@ -12,6 +12,7 @@ export interface ConversationMessage {
 export interface Conversation {
   id?: Id
   title?: string
+  content?: string
   messages: ConversationMessage[]
   createdAt: Date
   updatedAt: Date

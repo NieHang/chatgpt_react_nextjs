@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { Conversation, ConversationMessage } from '@/types/Conversation'
+import type { ConversationMessage } from '@/types/Conversation'
 import AskInput from '@/components/common/AskInput'
 import { apiFetch } from '@/lib/apiFetch'
 import { useRouter, useParams, useSearchParams } from 'next/navigation'
@@ -104,7 +104,7 @@ export default function Chat() {
         if (abortRef.current === ac) abortRef.current = null
       }
     },
-    [conversationId, input, initialMessage],
+    [conversationId, input, initialMessage, messages],
   )
 
   useEffect(() => {
@@ -130,10 +130,8 @@ export default function Chat() {
 
       loadedConversationId.current = conversationId as string
 
-      const [error, result] = await getConversations<Conversation[]>(
-        loadedConversationId.current,
-      )
-      if (error || !result?.data) {
+      const result = await getConversations(loadedConversationId.current)
+      if (!result?.data) {
         setMessages([])
         return
       }
