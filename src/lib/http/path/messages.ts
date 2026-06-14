@@ -1,4 +1,4 @@
-import { fetchJson } from '@/lib/apiFetch'
+import { apiFetch, fetchJson } from '@/lib/apiFetch'
 import { Conversation, ConversationMessage } from '@/types/Conversation'
 import { ParamValue } from 'next/dist/server/request/params'
 
@@ -21,7 +21,7 @@ export function chat({
   isNewChat: boolean
   signal?: AbortSignal
 }) {
-  return fetchJson<Response>('/api/chat', {
+  return apiFetch('/api/chat', {
     method: 'POST',
     json: {
       messages,
@@ -31,4 +31,3 @@ export function chat({
     signal,
   })
 }
-
