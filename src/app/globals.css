@@ -32,3 +32,13 @@ body {
     @apply shrink-0;
   }
 }
+
+@keyframes thinking-sweep {
+  from {
+    left: -1.25rem;
+  }
+
+  to {
+    left: 100%;
+  }
+}
