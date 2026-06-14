@@ -4,7 +4,20 @@ const uri = process.env.MONGODB_URI
 const dbName = process.env.MONGODB_DB
 
 const g = global as unknown as {
-  _mongoClientPromise: Promise<MongoClient>
+  _mongoClientPromise?: Promise<MongoClient>
+}
+
+function createMongoClientPromise() {
+  return MongoClient.connect(uri!, {
+    serverApi: {
+      version: ServerApiVersion.v1,
+      strict: true,
+      deprecationErrors: true,
+    },
+  }).catch((error) => {
+    g._mongoClientPromise = undefined
+    throw error
+  })
 }
 
 export async function getDb() {
@@ -13,15 +26,15 @@ export async function getDb() {
     return null
   }
   if (!g._mongoClientPromise) {
-    g._mongoClientPromise = MongoClient.connect(uri, {
-      serverApi: {
-        version: ServerApiVersion.v1,
-        strict: true,
-        deprecationErrors: true,
-      },
-    })
+    g._mongoClientPromise = createMongoClientPromise()
   }
-  const c = await g._mongoClientPromise
-  return c.db(dbName)
+
+  try {
+    const c = await g._mongoClientPromise
+    return c.db(dbName)
+  } catch (error) {
+    g._mongoClientPromise = undefined
+    throw error
+  }
 }
 
