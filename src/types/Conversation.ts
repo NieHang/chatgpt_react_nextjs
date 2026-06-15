@@ -18,11 +18,3 @@ export interface Conversation {
   createdAt: Date
   updatedAt: Date
 }
-
-export interface Message {
-  _id?: Id
-  role: MsgRole
-  content: string
-  conversationId?: Id
-  createdAt?: Date
-}

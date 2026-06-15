@@ -47,6 +47,7 @@ export default function Chat() {
       abortRef.current = ac
 
       try {
+        setIsLoading(true)
         const res = await chat({
           messages: nextMessages,
           conversationId,
@@ -177,7 +178,6 @@ export default function Chat() {
           onChange={setInput}
           onKeyDown={async (e: React.KeyboardEvent<HTMLInputElement>) => {
             if (e.key === 'Enter') {
-              setIsLoading(true)
               await send()
             }
           }}

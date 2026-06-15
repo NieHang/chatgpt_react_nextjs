@@ -1,55 +1,35 @@
-import { MsgRoles } from '@/constants/conversation'
-import { ProxyAgent } from 'undici'
+import OpenAI from 'openai'
+import { ResponseCreateParamsNonStreaming } from 'openai/resources/responses/responses.js'
 
-type GenerateTitleOptions = {
-  dispatcher?: ProxyAgent
-}
+const TITLE_INSTRUCTIONS =
+  'Create a concise title for this chat using only the user message. Do not answer the message. Do not repeat the full message. Do not add facts, names, topics, or assumptions that are not present. Return only a title, 2 to 6 words, no quotes, no ending punctuation.'
 
-async function generateTitle(
-  userMessage: string,
-  options: GenerateTitleOptions = {},
-) {
+async function generateTitle({
+  openAIClient,
+  userMessage,
+}: {
+  openAIClient: OpenAI
+  userMessage: string
+}) {
   const fallback = 'NEW CHAT'
 
   try {
-    const fetchOptions: RequestInit & { dispatcher?: unknown } = {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [
-          {
-            role: 'system',
-            content:
-              'Create a concise title for this chat using only the user message. Do not add facts, names, topics, or assumptions that are not present. If the message is vague, use a neutral title based on its exact words. Return only the title, 2 to 6 words, no quotes, no ending punctuation.',
-          },
-          {
-            role: MsgRoles.USER,
-            content: userMessage,
-          },
-        ],
-        temperature: 0.1,
-      }),
+    const fetchOptions: ResponseCreateParamsNonStreaming = {
+      model: 'gpt-4o-mini',
+      instructions: TITLE_INSTRUCTIONS,
+      input: `User message:\n${userMessage}`,
+      max_output_tokens: 20,
+      temperature: 0.2,
     }
 
-    if (options.dispatcher) fetchOptions.dispatcher = options.dispatcher
+    const res = await openAIClient.responses.create(fetchOptions)
 
-    const res = await fetch(
-      'https://api.openai.com/v1/chat/completions',
-      fetchOptions,
-    )
+    const title = res.output_text
 
-    if (!res.ok) return fallback
-
-    const data = await res.json()
-    const title = data.choices?.[0]?.message?.content
     return title || fallback
   } catch (error) {
     console.error('Failed to generate conversation title:', error)
-    return fallback
+    return userMessage || fallback
   }
 }
 

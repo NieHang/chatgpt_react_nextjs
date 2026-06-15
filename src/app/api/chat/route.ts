@@ -1,14 +1,15 @@
 import { ObjectId } from 'mongodb'
 import { NextRequest } from 'next/server'
-import type {
-  Message,
-  Conversation,
-  ConversationMessage,
-} from '@/types/Conversation'
+import type { Conversation, ConversationMessage } from '@/types/Conversation'
 import { getDb } from '@/lib/db'
 import { MsgRoles, CollectionNames } from '@/constants/conversation'
 import { ProxyAgent } from 'undici'
 import generateTitle from '@/app/api/chat/generateTitle'
+import OpenAI from 'openai'
+import {
+  EasyInputMessage,
+  ResponseCreateParamsStreaming,
+} from 'openai/resources/responses/responses.js'
 
 export const runtime = 'nodejs'
 
@@ -17,8 +18,11 @@ export async function POST(req: NextRequest) {
     messages,
     conversationId,
     isNewChat,
-  }: { messages: Message[]; conversationId: string; isNewChat: boolean } =
-    await req.json()
+  }: {
+    messages: ConversationMessage[]
+    conversationId: string
+    isNewChat: boolean
+  } = await req.json()
 
   if (!process.env.OPENAI_API_KEY) {
     return new Response('OpenAI API key not configured', { status: 500 })
@@ -29,6 +33,13 @@ export async function POST(req: NextRequest) {
   }
 
   const _cid = new ObjectId(conversationId)
+
+  const proxyUrl = process.env.HTTPS_PROXY || process.env.HTTP_PROXY
+  const dispatcher = proxyUrl ? new ProxyAgent(proxyUrl) : undefined
+  const openAIClient = new OpenAI({
+    apiKey: process.env['OPENAI_API_KEY'],
+    fetchOptions: dispatcher ? { dispatcher } : undefined,
+  })
 
   const db = await getDb().catch((error) => {
     console.error('Failed to connect to database:', error)
@@ -51,39 +62,17 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const proxyUrl = process.env.HTTPS_PROXY || process.env.HTTP_PROXY
-  const dispatcher = proxyUrl ? new ProxyAgent(proxyUrl) : undefined
-  const fetchOptions: RequestInit & { dispatcher?: unknown } = {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-    },
-    body: JSON.stringify({
-      model: 'gpt-4o-mini',
-      stream: true,
-      messages: messages ?? [
-        {
-          role: MsgRoles.USER,
-          content: 'Hello, world!',
-        },
-      ],
-      temperature: 0.7,
-    }),
+  const fetchOptions: ResponseCreateParamsStreaming = {
+    model: 'gpt-4o-mini',
+    stream: true,
+    input: messages?.map(({ role, content }) => ({
+      role: role === MsgRoles.TOOL ? MsgRoles.USER : role,
+      content,
+    })) as EasyInputMessage[],
+    temperature: 0.7,
   }
-  if (dispatcher) fetchOptions.dispatcher = dispatcher
 
-  const aiRes = await fetch(
-    'https://api.openai.com/v1/chat/completions',
-    fetchOptions,
-  )
-
-  if (!aiRes.ok || !aiRes.body) {
-    const text = await aiRes.text().catch(() => '<no body>')
-    return new Response('Error from OpenAI API: ' + text, {
-      status: aiRes.status,
-    })
-  }
+  const result = await openAIClient.responses.create(fetchOptions)
 
   const lastUser = [...messages].reverse().find((m) => m.role === MsgRoles.USER)
   const userContent = lastUser?.content ?? ''
@@ -98,7 +87,10 @@ export async function POST(req: NextRequest) {
       createdAt: timestamp,
     }
     if (isNewChat) {
-      const title = await generateTitle(userContent, { dispatcher })
+      const title = await generateTitle({
+        openAIClient,
+        userMessage: userContent,
+      })
       await conversationsCollection?.insertOne({
         _id: _cid,
         title,
@@ -121,76 +113,52 @@ export async function POST(req: NextRequest) {
     }
   })
 
-  const encoder = new TextEncoder()
-  const decoder = new TextDecoder()
-  let buffer = ''
   let assistantContent = ''
-
-  const stream = new ReadableStream({
+  const encoder = new TextEncoder()
+  const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
-      const reader = aiRes.body!.getReader()
-      let shouldStop = false
-
       try {
-        while (true) {
-          const { value, done } = await reader.read()
-          if (done) break
-          buffer += decoder.decode(value, { stream: true })
-
-          const lines = buffer.split('\n')
-          buffer = lines.pop() || ''
-
-          for (const line of lines) {
-            const trimmed = line.trim()
-            if (!trimmed || !trimmed.startsWith('data: ')) continue
-
-            const data = trimmed.slice(5).trim()
-            if (data === '[DONE]') {
-              shouldStop = true
-              break
-            }
-
-            try {
-              const json = JSON.parse(data)
-              const delta = json.choices?.[0]?.delta?.content
-              if (delta) {
-                assistantContent += delta
-                const chunk = encoder.encode(delta)
-                controller.enqueue(chunk)
-              }
-            } catch (e) {
-              console.error('Error parsing JSON:', e)
-            }
+        for await (const event of result) {
+          if (event.type === 'response.output_text.delta') {
+            assistantContent += event.delta
+            controller.enqueue(encoder.encode(event.delta))
           }
-          if (shouldStop) {
-            break
+
+          if (event.type === 'response.failed') {
+            throw new Error(
+              event.response.error?.message ?? 'OpenAI response failed',
+            )
+          }
+
+          if (event.type === 'error') {
+            throw new Error(event.message)
           }
         }
-        if (assistantContent) {
-          await runWithDb('Error persisting assistant message', async () => {
-            if (!conversationsCollection) return
 
-            const timestamp = new Date()
-            await conversationsCollection?.updateOne(
-              { _id: _cid },
-              {
-                $push: {
-                  messages: {
-                    role: MsgRoles.ASSISTANT,
-                    content: assistantContent,
-                    createdAt: timestamp,
-                  },
-                },
-                $set: {
-                  updatedAt: timestamp,
+        await runWithDb('Error persisting assistant conversation', async () => {
+          if (!assistantContent) return
+
+          const timestamp = new Date()
+          await conversationsCollection?.updateOne(
+            { _id: _cid },
+            {
+              $push: {
+                messages: {
+                  role: MsgRoles.ASSISTANT,
+                  content: assistantContent,
+                  createdAt: timestamp,
                 },
               },
-            )
-          })
-        }
+              $set: {
+                updatedAt: timestamp,
+              },
+            },
+          )
+        })
+
         controller.close()
-      } catch (e) {
-        controller.error(e)
+      } catch (error) {
+        controller.error(error)
       }
     },
   })
