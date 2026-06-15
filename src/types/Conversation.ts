@@ -7,6 +7,7 @@ export interface ConversationMessage {
   content: string
   createdAt: Date
   updateAt?: Date
+  isError?: boolean
 }
 
 export interface Conversation {

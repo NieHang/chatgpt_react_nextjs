@@ -19,7 +19,7 @@ export default function Chat() {
 
   const [messages, setMessages] = useState<ConversationMessage[]>([])
   const [input, setInput] = useState('')
-  const [isLoaded, setIsLoaded] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
   const abortRef = useRef<AbortController | null>(null)
   const { id: conversationId } = useParams()
   const hasSentInitial = useRef(false)
@@ -53,6 +53,7 @@ export default function Chat() {
           isNewChat: !!initialMessage,
           signal: ac.signal,
         })
+        setIsLoading(false)
         if (!res.ok || !res.body) {
           console.error('Error from API', await res.text())
           return
@@ -98,10 +99,12 @@ export default function Chat() {
               ...cp[i],
               content:
                 cp[i].content + '\n\n[Error: ' + (error as Error).message + ']',
+              isError: true,
             }
           return cp
         })
       } finally {
+        setIsLoading(false)
         if (abortRef.current === ac) abortRef.current = null
       }
     },
@@ -154,24 +157,29 @@ export default function Chat() {
             {msg?.content}
           </div>
         ))}
-        <div
-          className={clsx(
-            'relative w-fit',
-            'before:absolute before:top-0 before:left-0 before:block before:w-7 before:h-7',
-            'before:bg-linear-to-l before:from-transparent before:via-white before:to-transparent',
-            'before:animate-[thinking-sweep_1.5s_linear_infinite]',
-            'text-gray-400 text-base',
-          )}
-        >
-          Thinking
-        </div>
+        {isLoading && (
+          <div
+            className={clsx(
+              'relative w-fit',
+              'before:absolute before:top-0 before:left-0 before:block before:w-7 before:h-7',
+              'before:bg-linear-to-l before:from-transparent before:via-white before:to-transparent',
+              'before:animate-[thinking-sweep_1.5s_linear_infinite]',
+              'text-gray-400 text-base',
+            )}
+          >
+            Thinking
+          </div>
+        )}
       </div>
       <div className="w-full m-3 flex justify-center gap-2 absolute bottom-[60px] z-10">
         <AskInput
           value={input}
           onChange={setInput}
-          onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
-            if (e.key === 'Enter') void send()
+          onKeyDown={async (e: React.KeyboardEvent<HTMLInputElement>) => {
+            if (e.key === 'Enter') {
+              setIsLoading(true)
+              await send()
+            }
           }}
         />
       </div>
