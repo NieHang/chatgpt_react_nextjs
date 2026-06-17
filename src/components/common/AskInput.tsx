@@ -1,3 +1,4 @@
+import clsx from 'clsx'
 import Image from 'next/image'
 
 export default function AskInput({
@@ -10,7 +11,14 @@ export default function AskInput({
   onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void
 }) {
   return (
-    <div className="w-full flex flex-col items-start p-4 rounded-3xl border border-gray-300 bg-white">
+    <div
+      className={clsx(
+        'flex flex-col items-start',
+        'w-full p-4 bg-white',
+        'rounded-3xl border border-gray-300',
+        'shadow-[0_0_20px_rgba(255,255,255)]',
+      )}
+    >
       <input
         type="text"
         value={value}
@@ -36,4 +44,3 @@ export default function AskInput({
     </div>
   )
 }
-

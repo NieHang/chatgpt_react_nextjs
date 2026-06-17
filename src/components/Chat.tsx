@@ -7,6 +7,8 @@ import { useRouter, useParams, useSearchParams } from 'next/navigation'
 import { getConversations, chat } from '@/lib/http/path/messages'
 import { MsgRoles } from '@/constants/conversation'
 import { useConversations } from '@/providers/ConversationProvider'
+import loadingIcon from '../../public/common/loading.svg'
+import Image from 'next/image'
 import clsx from 'clsx'
 
 export default function Chat() {
@@ -19,6 +21,7 @@ export default function Chat() {
 
   const [messages, setMessages] = useState<ConversationMessage[]>([])
   const [input, setInput] = useState('')
+  const [isThinking, setIsThinking] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const abortRef = useRef<AbortController | null>(null)
   const { id: conversationId } = useParams()
@@ -47,14 +50,14 @@ export default function Chat() {
       abortRef.current = ac
 
       try {
-        setIsLoading(true)
+        setIsThinking(true)
         const res = await chat({
           messages: nextMessages,
           conversationId,
           isNewChat: !!initialMessage,
           signal: ac.signal,
         })
-        setIsLoading(false)
+        setIsThinking(false)
         if (!res.ok || !res.body) {
           console.error('Error from API', await res.text())
           return
@@ -105,7 +108,7 @@ export default function Chat() {
           return cp
         })
       } finally {
-        setIsLoading(false)
+        setIsThinking(false)
         if (abortRef.current === ac) abortRef.current = null
       }
     },
@@ -116,8 +119,10 @@ export default function Chat() {
     if (!initialMessage || hasSentInitial.current) return
     hasSentInitial.current = true
     ;(async () => {
+      setIsLoading(true)
       await send(initialMessage)
       await refreshConversations()
+      setIsLoading(false)
       router.replace(`/c/${conversationId}`) // Remove initialMessage from URL
     })()
   }, [initialMessage, send, conversationId, router, refreshConversations])
@@ -147,32 +152,55 @@ export default function Chat() {
 
   return (
     <div className="relative flex flex-col w-[70%] h-full">
-      <div className="p-8 space-y-3 h-[80%] overflow-y-auto scrollbar-hide">
-        {messages.map((msg, index) => (
-          <div
-            key={index}
-            className={`bg-[#F4F4F4] text-black px-4 rounded-[18px] py-1.5 data-[multiline]:py-3 max-w-lg ${
-              msg?.role === 'user' ? 'place-self-end' : 'place-self-start'
-            }`}
-          >
-            {msg?.content}
-          </div>
-        ))}
-        {isLoading && (
-          <div
-            className={clsx(
-              'relative w-fit',
-              'before:absolute before:top-0 before:left-0 before:block before:w-7 before:h-7',
-              'before:bg-linear-to-l before:from-transparent before:via-white before:to-transparent',
-              'before:animate-[thinking-sweep_1.5s_linear_infinite]',
-              'text-gray-400 text-base',
-            )}
-          >
-            Thinking
-          </div>
+      {isLoading ? (
+        <Image
+          src={loadingIcon}
+          alt="loading"
+          className={clsx(
+            'absolute top-[50%] left-[50%] translate-[-50%, -50%]',
+            'animate-[spin_2s_infinite] w-10 h-10',
+          )}
+        />
+      ) : (
+        <div className="pb-[250px] space-y-3 overflow-y-auto scrollbar-hide">
+          {messages.map((msg, index) => (
+            <div
+              key={index}
+              className={clsx(
+                'max-w-lg',
+                'px-4 py-1.5 data-[multiline]:py-3',
+                `rounded-[18px] ${
+                  msg?.role === MsgRoles.USER
+                    ? 'place-self-end bg-pink-50 text-[#4d1f34]'
+                    : 'place-self-start text-black'
+                }`,
+              )}
+            >
+              {msg?.content}
+            </div>
+          ))}
+          {isThinking && (
+            <div
+              className={clsx(
+                'relative w-fit',
+                'before:absolute before:top-0 before:left-0 before:block before:w-7 before:h-7',
+                'before:bg-linear-to-l before:from-transparent before:via-white before:to-transparent',
+                'before:animate-[thinking-sweep_1.5s_linear_infinite]',
+                'text-gray-400 text-base',
+              )}
+            >
+              Thinking
+            </div>
+          )}
+        </div>
+      )}
+      <div
+        className={clsx(
+          'absolute bottom-[50px]',
+          'flex flex-col justify-center',
+          'w-full rounded-3xl z-10 bg-white',
         )}
-      </div>
-      <div className="w-full m-3 flex justify-center gap-2 absolute bottom-[60px] z-10">
+      >
         <AskInput
           value={input}
           onChange={setInput}
@@ -182,6 +210,9 @@ export default function Chat() {
             }
           }}
         />
+        <div className="h-[60px] leading-[60px] text-xs text-gray-400 text-center">
+          ChatGPT can make mistakes. Check important info.
+        </div>
       </div>
     </div>
   )
