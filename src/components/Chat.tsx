@@ -141,7 +141,9 @@ export default function Chat() {
 
       loadedConversationId.current = conversationId as string
 
+      setIsLoading(true)
       const result = await getConversations(loadedConversationId.current)
+      setIsLoading(false)
       if (!result?.data) {
         setMessages([])
         return
