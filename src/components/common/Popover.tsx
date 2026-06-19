@@ -6,6 +6,7 @@ import {
   flip,
   useHover,
 } from '@floating-ui/react'
+import clsx from 'clsx'
 import { CSSProperties, PropsWithChildren, useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 
@@ -69,12 +70,16 @@ export default function Popover(props: PopoverProps) {
     }
   }, [])
 
-  const floating = isOpen && (
+  const floating = (
     <div
       ref={refs.setFloating}
       style={floatingStyles}
       {...getFloatingProps()}
-      className="border-gray-300 border-1 rounded-2xl p-4"
+      className={clsx(
+        'border-gray-300 border-1 rounded-2xl py-2 px-3 z-10 bg-white',
+        'transition-opacity duration-150',
+        isOpen ? 'opacity-100' : 'opacity-0 invisible',
+      )}
     >
       {content}
     </div>
@@ -94,4 +99,3 @@ export default function Popover(props: PopoverProps) {
     </>
   )
 }
-

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { ConversationMessage } from '@/types/Conversation'
-import AskInput from '@/components/common/AskInput'
+import AskInput from '@/components/Form/Input/AskInput'
 import { useRouter, useParams, useSearchParams } from 'next/navigation'
 import { getConversations, chat } from '@/lib/http/path/messages'
 import { MsgRoles } from '@/constants/conversation'

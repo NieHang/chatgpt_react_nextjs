@@ -1,6 +1,6 @@
 'use client'
 
-import AskInput from '@/components/common/AskInput'
+import AskInput from '@/components/Form/Input/AskInput'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import type { KeyboardEvent } from 'react'
@@ -18,7 +18,7 @@ export default function Home() {
     if (e.key === 'Enter' && input.trim()) {
       const chatId = new ObjectId().toHexString()
       router.push(
-        `/c/${chatId}?initialMessage=${encodeURIComponent(input.trim())}`
+        `/c/${chatId}?initialMessage=${encodeURIComponent(input.trim())}`,
       )
     }
   }
@@ -34,4 +34,3 @@ export default function Home() {
     </div>
   )
 }
-
