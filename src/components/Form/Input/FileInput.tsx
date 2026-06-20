@@ -4,20 +4,23 @@ import { useEffect, useRef, type ChangeEvent } from 'react'
 import { Attachment } from '@/types/Form'
 
 type FileInputProps = {
+  files: Attachment[]
   setFiles: (files: Attachment[]) => void
 }
 
-export default function FileInput({ setFiles }: FileInputProps) {
+export default function FileInput({ files, setFiles }: FileInputProps) {
   const inputRef = useRef<HTMLInputElement>(null)
-
   function handleChange(e: ChangeEvent<HTMLInputElement>) {
-    setFiles(
-      Array.from(e.target.files ?? []).map((item) => ({
+    setFiles([
+      ...files,
+      ...Array.from(e.target.files ?? []).map((item) => ({
         name: item.name,
         isImage: item.type.startsWith('image/'),
+        isPDF: item.type === 'application/pdf',
         previewSrc: URL.createObjectURL(item),
+        type: item.type === 'application/pdf' ? 'PDF' : 'FILE',
       })),
-    )
+    ])
   }
 
   function handleKeydown(e: KeyboardEvent) {
