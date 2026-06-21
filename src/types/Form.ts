@@ -4,4 +4,5 @@ export interface Attachment {
   isPDF: boolean
   previewSrc?: string
   type: string
+  file: File
 }

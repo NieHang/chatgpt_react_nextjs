@@ -4,12 +4,13 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { ConversationMessage } from '@/types/Conversation'
 import AskInput from '@/components/Form/Input/AskInput'
 import { useRouter, useParams, useSearchParams } from 'next/navigation'
-import { getConversations, chat } from '@/lib/http/path/messages'
+import { getConversations, chat, uploadFiles } from '@/lib/api-wrapper/messages'
 import { MsgRoles } from '@/constants/conversation'
 import { useConversations } from '@/providers/ConversationProvider'
 import loadingIcon from '../../public/common/loading.svg'
 import Image from 'next/image'
 import clsx from 'clsx'
+import { Attachment } from '@/types/Form'
 
 export default function Chat() {
   const router = useRouter()
@@ -29,16 +30,43 @@ export default function Chat() {
   const loadedConversationId = useRef<string | null>(null)
 
   const send = useCallback(
-    async (contentArg?: string) => {
+    async ({
+      contentArg,
+      inputFiles,
+    }: {
+      contentArg?: string
+      inputFiles?: Attachment[]
+    }) => {
       const content = (contentArg ?? input).trim()
       if (!content) return
       if (!contentArg) setInput('')
+
+      let filesFromOpenAI = null
+
+      if (inputFiles?.length) {
+        const result = await uploadFiles({
+          files: inputFiles.map((item) => item.file),
+        })
+
+        filesFromOpenAI = result.uploadedFiles
+      }
 
       const nextMessages: ConversationMessage[] = [
         ...messages,
         {
           role: MsgRoles.USER,
-          content,
+          content: filesFromOpenAI?.length
+            ? [
+                ...filesFromOpenAI.map((file) => ({
+                  type: 'input_file' as const,
+                  file_id: file.id,
+                })),
+                {
+                  type: 'input_text',
+                  text: content,
+                },
+              ]
+            : content,
           createdAt: new Date(),
         },
       ]
@@ -120,7 +148,7 @@ export default function Chat() {
     hasSentInitial.current = true
     ;(async () => {
       setIsLoading(true)
-      await send(initialMessage)
+      await send({ contentArg: initialMessage })
       await refreshConversations()
       setIsLoading(false)
       router.replace(`/c/${conversationId}`) // Remove initialMessage from URL
@@ -178,7 +206,11 @@ export default function Chat() {
                 }`,
               )}
             >
-              {msg?.content}
+              {typeof msg.content === 'string'
+                ? msg.content
+                : msg.content.map((item, index) => (
+                    <div key={index}>{item.type}</div>
+                  ))}
             </div>
           ))}
           {isThinking && (
@@ -206,9 +238,12 @@ export default function Chat() {
         <AskInput
           value={input}
           onChange={setInput}
-          onKeyDown={async (e: React.KeyboardEvent<HTMLInputElement>) => {
+          onKeyDown={async (
+            e: React.KeyboardEvent<HTMLInputElement>,
+            inputFiles,
+          ) => {
             if (e.key === 'Enter') {
-              await send()
+              await send({ inputFiles })
             }
           }}
         />

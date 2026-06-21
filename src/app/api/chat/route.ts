@@ -3,13 +3,12 @@ import { NextRequest } from 'next/server'
 import type { Conversation, ConversationMessage } from '@/types/Conversation'
 import { getDb } from '@/lib/db'
 import { MsgRoles, CollectionNames } from '@/constants/conversation'
-import { ProxyAgent } from 'undici'
 import generateTitle from '@/app/api/chat/generateTitle'
-import OpenAI from 'openai'
 import {
   EasyInputMessage,
   ResponseCreateParamsStreaming,
 } from 'openai/resources/responses/responses.js'
+import getOpenAIClient from '@/lib/openAIClient'
 
 export const runtime = 'nodejs'
 
@@ -34,12 +33,7 @@ export async function POST(req: NextRequest) {
 
   const _cid = new ObjectId(conversationId)
 
-  const proxyUrl = process.env.HTTPS_PROXY || process.env.HTTP_PROXY
-  const dispatcher = proxyUrl ? new ProxyAgent(proxyUrl) : undefined
-  const openAIClient = new OpenAI({
-    apiKey: process.env['OPENAI_API_KEY'],
-    fetchOptions: dispatcher ? { dispatcher } : undefined,
-  })
+  const openAIClient = getOpenAIClient()!
 
   const db = await getDb().catch((error) => {
     console.error('Failed to connect to database:', error)
@@ -48,7 +42,6 @@ export async function POST(req: NextRequest) {
   const conversationsCollection = db
     ? db.collection<Conversation>(CollectionNames.CONVERSATIONS)
     : null
-  const messagesCollection = db ? db.collection(CollectionNames.MESSAGES) : null
 
   const runWithDb = async (
     label: string,
@@ -78,8 +71,6 @@ export async function POST(req: NextRequest) {
   const userContent = lastUser?.content ?? ''
 
   await runWithDb('Error persisting user conversation', async () => {
-    if (!messagesCollection) return
-
     const timestamp = new Date()
     const messages: ConversationMessage = {
       role: MsgRoles.USER,
@@ -89,7 +80,8 @@ export async function POST(req: NextRequest) {
     if (isNewChat) {
       const title = await generateTitle({
         openAIClient,
-        userMessage: userContent,
+        userMessage:
+          typeof userContent === 'string' ? userContent : userContent[0].type,
       })
       await conversationsCollection?.insertOne({
         _id: _cid,

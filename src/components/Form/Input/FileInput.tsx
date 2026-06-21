@@ -41,6 +41,7 @@ export default function FileInput({
         isPDF,
         previewSrc: URL.createObjectURL(previewFile),
         type: isPDF ? 'PDF' : 'FILE',
+        file: item,
       }
     })
     setFiles((currentFiles) => [...currentFiles, ...newAttachments])

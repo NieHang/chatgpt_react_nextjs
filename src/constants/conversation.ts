@@ -8,6 +8,7 @@ export const MsgRoles = {
 export const CollectionNames = {
   CONVERSATIONS: 'conversations',
   MESSAGES: 'messages',
+  FILES: 'files',
 }
 
 export type MsgRole = (typeof MsgRoles)[keyof typeof MsgRoles]
