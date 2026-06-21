@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useEffect } from 'react'
-import { getConversations } from '@/lib/http/path/messages'
+import { getConversations } from '@/lib/api-wrapper/messages'
 import type { Conversation } from '@/types/Conversation'
 
 type ConversationContextValue = {

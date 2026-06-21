@@ -31,3 +31,34 @@ export function chat({
     signal,
   })
 }
+
+type UploadedFile = {
+  id: string
+  name: string
+  type: string
+  size: number
+  openaiFileId: string
+  mongoFileId: string
+  src: string
+  downloadUrl: string
+}
+
+type UploadFilesResponse = {
+  uploadedFiles: UploadedFile[]
+}
+
+export async function uploadFiles({ files }: { files: File[] }) {
+  const formData = new FormData()
+  files.forEach((file) => formData.append('files', file))
+
+  const response = await apiFetch('/api/upload-files', {
+    method: 'POST',
+    body: formData,
+  })
+
+  if (!response.ok) {
+    throw new Error(`Failed to upload files: ${response.status}`)
+  }
+
+  return response.json() as Promise<UploadFilesResponse>
+}
