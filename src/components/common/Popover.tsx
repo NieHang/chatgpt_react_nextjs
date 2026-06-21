@@ -32,18 +32,22 @@ export default function Popover(props: PopoverProps) {
     className,
     style,
     children,
+    open,
     onOpenChange,
   } = props
 
-  const [isOpen, setIsOpen] = useState(false)
+  const [internalOpen, setInternalOpen] = useState(false)
+  const isOpen = open ?? internalOpen
 
   const [el, setEl] = useState<HTMLElement | null>(null)
 
   const { refs, floatingStyles, context } = useFloating({
     open: isOpen,
-    onOpenChange: (open) => {
-      setIsOpen(open)
-      onOpenChange?.(open)
+    onOpenChange: (nextOpen) => {
+      if (open === undefined) {
+        setInternalOpen(nextOpen)
+      }
+      onOpenChange?.(nextOpen)
     },
     placement,
     middleware: [flip()],

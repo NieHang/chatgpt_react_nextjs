@@ -26,6 +26,7 @@ export default function AskInput({
   ]
 
   const [files, setFiles] = useState<Attachment[]>([])
+  const [isAttachmentPopoverOpen, setIsAttachmentPopoverOpen] = useState(false)
 
   const attachmentOptionJSX = (
     <div className="flex flex-col w-[250px] bg-white">
@@ -50,7 +51,10 @@ export default function AskInput({
             <span className="hidden text-gray-300 group-hover:block">
               {option.keyword}
             </span>
-            <FileInput files={files} setFiles={setFiles} />
+            <FileInput
+              setFiles={setFiles}
+              onFilesSelected={() => setIsAttachmentPopoverOpen(false)}
+            />
           </div>
         </label>
       ))}
@@ -71,7 +75,12 @@ export default function AskInput({
         {!!files.length && <UploadedFiles files={files} setFiles={setFiles} />}
       </div>
       <div className={clsx('flex items-center')}>
-        <Popover content={attachmentOptionJSX} placement="top-start">
+        <Popover
+          content={attachmentOptionJSX}
+          placement="top-start"
+          open={isAttachmentPopoverOpen}
+          onOpenChange={setIsAttachmentPopoverOpen}
+        >
           <div
             className={clsx(
               'p-2 rounded-full mr-1',
