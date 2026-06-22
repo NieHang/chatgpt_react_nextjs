@@ -5,7 +5,14 @@ import { useEffect, useRef, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import clsx from 'clsx'
 import { useConversations } from '@/providers/ConversationProvider'
+import type { ConversationMessage } from '@/types/Conversation'
 
+function getMessagePreview(content?: ConversationMessage['content']) {
+  if (!content) return ''
+  if (typeof content === 'string') return content
+
+  return content.find((item) => item.type === 'input_text')?.text ?? ''
+}
 export default function SideBar() {
   const router = useRouter()
   const { id: currentConversationId } = useParams()
@@ -177,7 +184,7 @@ export default function SideBar() {
             <div
               className={`w-full overflow-ellipsis overflow-hidden text-sm whitespace-nowrap`}
             >
-              {item?.title ?? item?.content ?? item?.messages?.[0]?.content}
+              {item?.title ?? getMessagePreview(item?.messages?.[0]?.content)}
             </div>
           </div>
         ))}

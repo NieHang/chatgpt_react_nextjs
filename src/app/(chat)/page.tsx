@@ -3,7 +3,6 @@
 import AskInput from '@/components/Form/Input/AskInput'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
-import type { KeyboardEvent } from 'react'
 import { ObjectId } from 'bson'
 
 export default function Home() {
@@ -14,13 +13,13 @@ export default function Home() {
     setInput(value)
   }
 
-  const onInputKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && input.trim()) {
-      const chatId = new ObjectId().toHexString()
-      router.push(
-        `/c/${chatId}?initialMessage=${encodeURIComponent(input.trim())}`,
-      )
-    }
+  const onInputKeyDown = () => {
+    if (!input.trim()) return
+
+    const chatId = new ObjectId().toHexString()
+    router.push(
+      `/c/${chatId}?initialMessage=${encodeURIComponent(input.trim())}`,
+    )
   }
 
   return (
