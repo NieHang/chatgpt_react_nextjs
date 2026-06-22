@@ -14,10 +14,7 @@ export default function AskInput({
 }: {
   value: string
   onChange: (value: string) => void
-  onKeyDown: (
-    e: React.KeyboardEvent<HTMLInputElement>,
-    inputFiles: Attachment[],
-  ) => void
+  onKeyDown: (inputFiles: Attachment[]) => void
 }) {
   const attachmentOptions = [
     {
@@ -100,7 +97,12 @@ export default function AskInput({
           placeholder="Ask anything"
           className="w-full outline-none border-none bg-transparent"
           onChange={(e) => onChange(e.target.value)}
-          onKeyDown={(e) => onKeyDown(e, files)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              onKeyDown(files)
+              setFiles([])
+            }
+          }}
         />
       </div>
     </div>
