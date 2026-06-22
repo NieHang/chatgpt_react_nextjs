@@ -11,7 +11,33 @@ import loadingIcon from '../../public/common/loading.svg'
 import Image from 'next/image'
 import clsx from 'clsx'
 import { Attachment } from '@/types/Form'
+import type { UploadedFile } from '@/types/UploadedFile'
+import { isVisionImageFile } from '@/lib/fileTypes'
+import type { ResponseInputMessageContentList } from 'openai/resources/responses/responses.js'
 
+function buildInputContent(
+  files: UploadedFile[],
+  text: string,
+): ResponseInputMessageContentList {
+  return [
+    ...files.map((file) =>
+      isVisionImageFile(file)
+        ? {
+            type: 'input_image' as const,
+            file_id: file.id,
+            detail: 'auto' as const,
+          }
+        : {
+            type: 'input_file' as const,
+            file_id: file.id,
+          },
+    ),
+    {
+      type: 'input_text',
+      text,
+    },
+  ]
+}
 export default function Chat() {
   const router = useRouter()
 
@@ -41,7 +67,7 @@ export default function Chat() {
       if (!content) return
       if (!contentArg) setInput('')
 
-      let filesFromOpenAI = null
+      let filesFromOpenAI: UploadedFile[] | null = null
 
       if (inputFiles?.length) {
         const result = await uploadFiles({
@@ -56,17 +82,9 @@ export default function Chat() {
         {
           role: MsgRoles.USER,
           content: filesFromOpenAI?.length
-            ? [
-                ...filesFromOpenAI.map((file) => ({
-                  type: 'input_file' as const,
-                  file_id: file.id,
-                })),
-                {
-                  type: 'input_text',
-                  text: content,
-                },
-              ]
+            ? buildInputContent(filesFromOpenAI, content)
             : content,
+          ...(filesFromOpenAI?.length ? { attachments: filesFromOpenAI } : {}),
           createdAt: new Date(),
         },
       ]
@@ -194,23 +212,87 @@ export default function Chat() {
       ) : (
         <div className="pb-[250px] space-y-3 overflow-y-auto scrollbar-hide">
           {messages.map((msg, index) => (
-            <div
-              key={index}
-              className={clsx(
-                'max-w-lg',
-                'px-4 py-1.5 data-[multiline]:py-3',
-                `rounded-[18px] ${
-                  msg?.role === MsgRoles.USER
-                    ? 'place-self-end bg-pink-50 text-[#4d1f34]'
-                    : 'place-self-start text-black'
-                }`,
-              )}
-            >
-              {typeof msg.content === 'string'
-                ? msg.content
-                : msg.content.map((item, index) => (
-                    <div key={index}>{item.type}</div>
-                  ))}
+            <div key={index}>
+              {msg.attachments?.map((file) => (
+                <div
+                  key={file.mongoFileId}
+                  className={clsx(
+                    'relative',
+                    'flex items-center place-self-end w-fit',
+                    file.isImage && 'justify-center',
+                    !file.isImage && 'p-2',
+                    'border border-gray-300 rounded-xl',
+                    'hover:bg-gray-100',
+                    'cursor-pointer',
+                  )}
+                >
+                  {file.isImage ? (
+                    <Image
+                      src={file.src}
+                      alt={file.name}
+                      width={384}
+                      height={190}
+                      className="rounded-xl object-fit"
+                    />
+                  ) : (
+                    <a
+                      href={file.downloadUrl}
+                      download={file.name}
+                      className={clsx('flex items-center gap-2 pr-8')}
+                    >
+                      <div
+                        className={clsx(
+                          'flex items-center justify-center shrink',
+                          'w-10 h-10 rounded-[5px]',
+                          file.isPDF ? 'bg-orange-600' : 'bg-gray-500',
+                        )}
+                      >
+                        <Image
+                          src={
+                            file.isPDF
+                              ? '/attachment-options/pdf.svg'
+                              : '/attachment-options/file.svg'
+                          }
+                          alt={file.name}
+                          width={25}
+                          height={25}
+                        />
+                      </div>
+                      <div className="flex flex-col items-start min-w-0">
+                        <div
+                          className={clsx(
+                            'max-w-[200px]',
+                            'text-black text-xm font-bold',
+                            'overflow-hidden whitespace-nowrap text-ellipsis',
+                          )}
+                        >
+                          {file.name}
+                        </div>
+                        <div className="text-gray-400 text-xs">{file.type}</div>
+                      </div>
+                    </a>
+                  )}
+                </div>
+              ))}
+              <div
+                className={clsx(
+                  'max-w-lg',
+                  'px-4 py-1.5 data-[multiline]:py-3',
+                  `rounded-[18px] ${
+                    msg?.role === MsgRoles.USER
+                      ? 'place-self-end bg-pink-50 text-[#4d1f34]'
+                      : 'place-self-start text-black'
+                  }`,
+                )}
+              >
+                {typeof msg.content === 'string'
+                  ? msg.content
+                  : msg.content.map((item, index) =>
+                      item.type === 'input_text' ? (
+                        <span key={index}>{item.text}</span>
+                      ) : null,
+                    )}
+              </div>
             </div>
           ))}
           {isThinking && (
@@ -238,13 +320,8 @@ export default function Chat() {
         <AskInput
           value={input}
           onChange={setInput}
-          onKeyDown={async (
-            e: React.KeyboardEvent<HTMLInputElement>,
-            inputFiles,
-          ) => {
-            if (e.key === 'Enter') {
-              await send({ inputFiles })
-            }
+          onKeyDown={async (inputFiles) => {
+            await send({ inputFiles })
           }}
         />
         <div className="h-[60px] leading-[60px] text-xs text-gray-400 text-center">

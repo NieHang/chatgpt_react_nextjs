@@ -1,6 +1,7 @@
 import { apiFetch, fetchJson } from '@/lib/apiFetch'
 import { Conversation, ConversationMessage } from '@/types/Conversation'
 import { ParamValue } from 'next/dist/server/request/params'
+import type { UploadedFile } from '@/types/UploadedFile'
 
 export function getConversations(conversationId?: string) {
   return fetchJson<Conversation[]>(
@@ -30,17 +31,6 @@ export function chat({
     },
     signal,
   })
-}
-
-type UploadedFile = {
-  id: string
-  name: string
-  type: string
-  size: number
-  openaiFileId: string
-  mongoFileId: string
-  src: string
-  downloadUrl: string
 }
 
 type UploadFilesResponse = {

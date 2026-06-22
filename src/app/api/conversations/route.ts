@@ -20,6 +20,7 @@ export async function GET(req: NextRequest) {
         messages: 1,
         content: 1,
         updatedAt: 1,
+        attachments: 1,
       })
       .sort({ updatedAt: -1 })
       .toArray()
@@ -32,6 +33,7 @@ export async function GET(req: NextRequest) {
         title: c.title,
         messages: c.messages,
         content: c.content,
+        attachments: c.attachments,
         updatedAt: c.updatedAt,
       })),
     })

@@ -12,6 +12,11 @@ import getOpenAIClient from '@/lib/openAIClient'
 
 export const runtime = 'nodejs'
 
+function getMessageText(content: ConversationMessage['content']) {
+  if (typeof content === 'string') return content
+
+  return content.find((item) => item.type === 'input_text')?.text ?? ''
+}
 export async function POST(req: NextRequest) {
   const {
     messages,
@@ -69,19 +74,20 @@ export async function POST(req: NextRequest) {
 
   const lastUser = [...messages].reverse().find((m) => m.role === MsgRoles.USER)
   const userContent = lastUser?.content ?? ''
+  const userAttachments = lastUser?.attachments
 
   await runWithDb('Error persisting user conversation', async () => {
     const timestamp = new Date()
     const messages: ConversationMessage = {
       role: MsgRoles.USER,
       content: userContent,
+      ...(userAttachments?.length ? { attachments: userAttachments } : {}),
       createdAt: timestamp,
     }
     if (isNewChat) {
       const title = await generateTitle({
         openAIClient,
-        userMessage:
-          typeof userContent === 'string' ? userContent : userContent[0].type,
+        userMessage: getMessageText(userContent),
       })
       await conversationsCollection?.insertOne({
         _id: _cid,

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import getOpenAIClient from '@/lib/openAIClient'
 import saveFileToGridFS from '@/app/api/upload-files/saveFileToGridFS'
+import { isVisionImageFile } from '@/lib/fileTypes'
 
 export async function POST(req: NextRequest) {
   const formData = await req.formData()
@@ -14,7 +15,7 @@ export async function POST(req: NextRequest) {
     inputFiles.map(async (file) => {
       const openaiFile = await openAIClient.files.create({
         file,
-        purpose: 'user_data',
+        purpose: isVisionImageFile(file) ? 'vision' : 'user_data',
       })
 
       const mongoFileId = await saveFileToGridFS(file, {
@@ -32,6 +33,10 @@ export async function POST(req: NextRequest) {
         mongoFileId: mongoId,
         src: `/api/files/${mongoId}`,
         downloadUrl: `/api/files/${mongoId}?download=1`,
+        isImage: file.type.startsWith('image/'),
+        isPDF:
+          file.type === 'application/pdf' ||
+          file.name.toLowerCase().endsWith('.pdf'),
       }
     }),
   )
