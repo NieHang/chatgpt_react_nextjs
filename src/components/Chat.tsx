@@ -55,6 +55,25 @@ export default function Chat() {
   const hasSentInitial = useRef(false)
   const loadedConversationId = useRef<string | null>(null)
 
+  const messageOptions = [
+    {
+      src: '/common/copy.svg',
+      alt: 'copy message',
+      types: [MsgRoles.USER, MsgRoles.ASSISTANT] as MsgRole[],
+      fn: (message: string) => {
+        navigator.clipboard.writeText(message)
+      },
+    },
+    {
+      src: '/common/edit.svg',
+      alt: 'edit message',
+      types: [MsgRoles.USER] as MsgRole[],
+      fn: (message: string) => {
+        navigator.clipboard.writeText(message)
+      },
+    },
+  ]
+
   const send = useCallback(
     async ({
       contentArg,
@@ -242,10 +261,10 @@ export default function Chat() {
               <div
                 className={clsx(
                   'max-w-lg',
-                  'px-4 py-1.5 data-[multiline]:py-3',
+                  'data-[multiline]:py-3',
                   `rounded-[18px] ${
                     msg?.role === MsgRoles.USER
-                      ? 'place-self-end bg-pink-50 text-[#4d1f34]'
+                      ? 'place-self-end px-4 py-1.5 bg-pink-50 text-[#4d1f34]'
                       : 'place-self-start text-black'
                   }`,
                 )}
@@ -257,6 +276,44 @@ export default function Chat() {
                         <span key={index}>{item.text}</span>
                       ) : null,
                     )}
+              </div>
+              <div
+                className={clsx(
+                  'flex items-center justify-end invisible mt-1',
+                  'group-hover:visible',
+                  msg?.role === MsgRoles.USER
+                    ? 'place-self-end'
+                    : 'place-self-start',
+                )}
+              >
+                {messageOptions.map(
+                  (option, index) =>
+                    option.types.includes(msg.role) && (
+                      <div
+                        key={index}
+                        className={clsx(
+                          'flex items-center justify-center p-2 cursor-pointer',
+                          'hover:bg-gray-200 rounded-xl',
+                        )}
+                        onClick={() =>
+                          option.fn(
+                            typeof msg.content === 'string'
+                              ? msg.content
+                              : msg.content.find(
+                                  (item) => item.type === 'input_text',
+                                )!.text,
+                          )
+                        }
+                      >
+                        <Image
+                          src={option.src}
+                          alt={option.alt}
+                          width={20}
+                          height={20}
+                        />
+                      </div>
+                    ),
+                )}
               </div>
             </div>
           ))}
