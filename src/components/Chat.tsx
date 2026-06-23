@@ -5,15 +5,15 @@ import type { ConversationMessage } from '@/types/Conversation'
 import AskInput from '@/components/Form/Input/AskInput'
 import { useRouter, useParams, useSearchParams } from 'next/navigation'
 import { getConversations, chat, uploadFiles } from '@/lib/api-wrapper/messages'
-import { MsgRoles } from '@/constants/conversation'
+import { MsgRole, MsgRoles } from '@/constants/conversation'
 import { useConversations } from '@/providers/ConversationProvider'
-import loadingIcon from '../../public/common/loading.svg'
 import Image from 'next/image'
 import clsx from 'clsx'
 import { Attachment } from '@/types/Form'
 import type { UploadedFile } from '@/types/UploadedFile'
 import { isVisionImageFile } from '@/lib/fileTypes'
 import type { ResponseInputMessageContentList } from 'openai/resources/responses/responses.js'
+import FileAttachment from '@/components/common/FileAttachment'
 
 function buildInputContent(
   files: UploadedFile[],
@@ -69,6 +69,7 @@ export default function Chat() {
 
       let filesFromOpenAI: UploadedFile[] | null = null
 
+      setIsThinking(true)
       if (inputFiles?.length) {
         const result = await uploadFiles({
           files: inputFiles.map((item) => item.file),
@@ -96,7 +97,6 @@ export default function Chat() {
       abortRef.current = ac
 
       try {
-        setIsThinking(true)
         const res = await chat({
           messages: nextMessages,
           conversationId,
@@ -202,7 +202,7 @@ export default function Chat() {
     <div className="relative flex flex-col w-[70%] h-full">
       {isLoading ? (
         <Image
-          src={loadingIcon}
+          src="/common/loading.svg"
           alt="loading"
           className={clsx(
             'absolute top-[50%] left-[50%] translate-[-50%, -50%]',
@@ -212,7 +212,7 @@ export default function Chat() {
       ) : (
         <div className="pb-[250px] space-y-3 overflow-y-auto scrollbar-hide">
           {messages.map((msg, index) => (
-            <div key={index}>
+            <div key={index} className="group">
               {msg.attachments?.map((file) => (
                 <div
                   key={file.mongoFileId}
@@ -235,42 +235,7 @@ export default function Chat() {
                       className="rounded-xl object-fit"
                     />
                   ) : (
-                    <a
-                      href={file.downloadUrl}
-                      download={file.name}
-                      className={clsx('flex items-center gap-2 pr-8')}
-                    >
-                      <div
-                        className={clsx(
-                          'flex items-center justify-center shrink',
-                          'w-10 h-10 rounded-[5px]',
-                          file.isPDF ? 'bg-orange-600' : 'bg-gray-500',
-                        )}
-                      >
-                        <Image
-                          src={
-                            file.isPDF
-                              ? '/attachment-options/pdf.svg'
-                              : '/attachment-options/file.svg'
-                          }
-                          alt={file.name}
-                          width={25}
-                          height={25}
-                        />
-                      </div>
-                      <div className="flex flex-col items-start min-w-0">
-                        <div
-                          className={clsx(
-                            'max-w-[200px]',
-                            'text-black text-xm font-bold',
-                            'overflow-hidden whitespace-nowrap text-ellipsis',
-                          )}
-                        >
-                          {file.name}
-                        </div>
-                        <div className="text-gray-400 text-xs">{file.type}</div>
-                      </div>
-                    </a>
+                    <FileAttachment file={file} />
                   )}
                 </div>
               ))}
