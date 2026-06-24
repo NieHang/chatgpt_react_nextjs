@@ -14,6 +14,8 @@ import type { UploadedFile } from '@/types/UploadedFile'
 import { isVisionImageFile } from '@/lib/fileTypes'
 import type { ResponseInputMessageContentList } from 'openai/resources/responses/responses.js'
 import FileAttachment from '@/components/common/FileAttachment'
+import EditInput from './Form/Input/EditInput'
+import { produce } from 'immer'
 
 function buildInputContent(
   files: UploadedFile[],
@@ -42,6 +44,7 @@ export default function Chat() {
   const router = useRouter()
 
   const searchParams = useSearchParams()
+  const { id: conversationId } = useParams()
   const initialMessage = searchParams.get('initialMessage')
 
   const { refreshConversations } = useConversations()
@@ -50,8 +53,11 @@ export default function Chat() {
   const [input, setInput] = useState('')
   const [isThinking, setIsThinking] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [msgIndexToBeEdited, setMsgIndexToBeEdited] = useState<number | null>(
+    null,
+  )
+
   const abortRef = useRef<AbortController | null>(null)
-  const { id: conversationId } = useParams()
   const hasSentInitial = useRef(false)
   const loadedConversationId = useRef<string | null>(null)
 
@@ -60,16 +66,16 @@ export default function Chat() {
       src: '/common/copy.svg',
       alt: 'copy message',
       types: [MsgRoles.USER, MsgRoles.ASSISTANT] as MsgRole[],
-      fn: (message: string) => {
-        navigator.clipboard.writeText(message)
+      fn: ({ message }: { message?: string }) => {
+        navigator.clipboard.writeText(message!)
       },
     },
     {
       src: '/common/edit.svg',
       alt: 'edit message',
       types: [MsgRoles.USER] as MsgRole[],
-      fn: (message: string) => {
-        navigator.clipboard.writeText(message)
+      fn: ({ index }: { index?: number }) => {
+        setMsgIndexToBeEdited(index!)
       },
     },
   ]
@@ -223,6 +229,8 @@ export default function Chat() {
         <Image
           src="/common/loading.svg"
           alt="loading"
+          width={40}
+          height={40}
           className={clsx(
             'absolute top-[50%] left-[50%] translate-[-50%, -50%]',
             'animate-[spin_2s_infinite] w-10 h-10',
@@ -230,93 +238,117 @@ export default function Chat() {
         />
       ) : (
         <div className="pb-[250px] space-y-3 overflow-y-auto scrollbar-hide">
-          {messages.map((msg, index) => (
-            <div key={index} className="group">
-              {msg.attachments?.map((file) => (
+          {messages.map((msg, msgIndex) =>
+            msgIndex === msgIndexToBeEdited ? (
+              <EditInput
+                key={msgIndex}
+                msg={msg}
+                setMsgIndexToBeEdited={setMsgIndexToBeEdited}
+                handleMsgUpdate={(val) => {
+                  setMessages(
+                    produce((draft) => {
+                      if (typeof draft[msgIndexToBeEdited].content === 'string')
+                        draft[msgIndexToBeEdited].content = val
+                      else {
+                        const target = draft[msgIndexToBeEdited].content.find(
+                          (item) => item.type === 'input_text',
+                        )
+                        target!.text = val
+                      }
+                    }),
+                  )
+                }}
+              />
+            ) : (
+              <div key={msgIndex} className="group">
+                {msg.attachments?.map((file) => (
+                  <div
+                    key={file.mongoFileId}
+                    className={clsx(
+                      'relative',
+                      'flex items-center place-self-end w-fit',
+                      file.isImage && 'justify-center',
+                      !file.isImage && 'p-2',
+                      'border border-gray-300 rounded-xl',
+                      'hover:bg-gray-100',
+                      'cursor-pointer',
+                    )}
+                  >
+                    {file.isImage ? (
+                      <Image
+                        src={file.src}
+                        alt={file.name}
+                        width={384}
+                        height={190}
+                        className="rounded-xl object-fit"
+                      />
+                    ) : (
+                      <FileAttachment file={file} />
+                    )}
+                  </div>
+                ))}
                 <div
-                  key={file.mongoFileId}
                   className={clsx(
-                    'relative',
-                    'flex items-center place-self-end w-fit',
-                    file.isImage && 'justify-center',
-                    !file.isImage && 'p-2',
-                    'border border-gray-300 rounded-xl',
-                    'hover:bg-gray-100',
-                    'cursor-pointer',
+                    'max-w-lg',
+                    'data-[multiline]:py-3',
+                    `rounded-[18px] ${
+                      msg?.role === MsgRoles.USER
+                        ? 'place-self-end px-4 py-1.5 bg-pink-50 text-[#4d1f34]'
+                        : 'place-self-start text-black'
+                    }`,
                   )}
                 >
-                  {file.isImage ? (
-                    <Image
-                      src={file.src}
-                      alt={file.name}
-                      width={384}
-                      height={190}
-                      className="rounded-xl object-fit"
-                    />
-                  ) : (
-                    <FileAttachment file={file} />
+                  {typeof msg.content === 'string'
+                    ? msg.content
+                    : msg.content.map((item, index) =>
+                        item.type === 'input_text' ? (
+                          <span key={index}>{item.text}</span>
+                        ) : null,
+                      )}
+                </div>
+                <div
+                  className={clsx(
+                    'flex items-center justify-end invisible mt-1',
+                    'group-hover:visible',
+                    msg?.role === MsgRoles.USER
+                      ? 'place-self-end'
+                      : 'place-self-start',
+                  )}
+                >
+                  {messageOptions.map(
+                    (option, index) =>
+                      option.types.includes(msg.role) && (
+                        <div
+                          key={index}
+                          className={clsx(
+                            'flex items-center justify-center p-2 cursor-pointer',
+                            'hover:bg-gray-200 rounded-xl',
+                          )}
+                          onClick={() =>
+                            option.fn({
+                              message:
+                                typeof msg.content === 'string'
+                                  ? msg.content
+                                  : msg.content.find(
+                                      (item) => item.type === 'input_text',
+                                    )!.text,
+                              index: msgIndex,
+                            })
+                          }
+                        >
+                          <Image
+                            src={option.src}
+                            alt={option.alt}
+                            width={20}
+                            height={20}
+                          />
+                        </div>
+                      ),
                   )}
                 </div>
-              ))}
-              <div
-                className={clsx(
-                  'max-w-lg',
-                  'data-[multiline]:py-3',
-                  `rounded-[18px] ${
-                    msg?.role === MsgRoles.USER
-                      ? 'place-self-end px-4 py-1.5 bg-pink-50 text-[#4d1f34]'
-                      : 'place-self-start text-black'
-                  }`,
-                )}
-              >
-                {typeof msg.content === 'string'
-                  ? msg.content
-                  : msg.content.map((item, index) =>
-                      item.type === 'input_text' ? (
-                        <span key={index}>{item.text}</span>
-                      ) : null,
-                    )}
               </div>
-              <div
-                className={clsx(
-                  'flex items-center justify-end invisible mt-1',
-                  'group-hover:visible',
-                  msg?.role === MsgRoles.USER
-                    ? 'place-self-end'
-                    : 'place-self-start',
-                )}
-              >
-                {messageOptions.map(
-                  (option, index) =>
-                    option.types.includes(msg.role) && (
-                      <div
-                        key={index}
-                        className={clsx(
-                          'flex items-center justify-center p-2 cursor-pointer',
-                          'hover:bg-gray-200 rounded-xl',
-                        )}
-                        onClick={() =>
-                          option.fn(
-                            typeof msg.content === 'string'
-                              ? msg.content
-                              : msg.content.find(
-                                  (item) => item.type === 'input_text',
-                                )!.text,
-                          )
-                        }
-                      >
-                        <Image
-                          src={option.src}
-                          alt={option.alt}
-                          width={20}
-                          height={20}
-                        />
-                      </div>
-                    ),
-                )}
-              </div>
-            </div>
-          ))}
+            ),
+          )}
           {isThinking && (
             <div
               className={clsx(
