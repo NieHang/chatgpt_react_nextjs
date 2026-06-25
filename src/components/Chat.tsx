@@ -84,12 +84,14 @@ export default function Chat() {
     async ({
       contentArg,
       inputFiles,
+      editedMessages,
     }: {
       contentArg?: string
       inputFiles?: Attachment[]
+      editedMessages?: ConversationMessage[]
     }) => {
       const content = (contentArg ?? input).trim()
-      if (!content) return
+      if (!content && !editedMessages) return
       if (!contentArg) setInput('')
 
       let filesFromOpenAI: UploadedFile[] | null = null
@@ -103,7 +105,7 @@ export default function Chat() {
         filesFromOpenAI = result.uploadedFiles
       }
 
-      const nextMessages: ConversationMessage[] = [
+      const nextMessages: ConversationMessage[] = editedMessages || [
         ...messages,
         {
           role: MsgRoles.USER,
@@ -186,6 +188,23 @@ export default function Chat() {
     [conversationId, input, initialMessage, messages],
   )
 
+  const handleMsgUpdate = async (val: string) => {
+    if (!msgIndexToBeEdited) return
+    const editedMessages = produce(messages, (draft) => {
+      if (typeof draft[msgIndexToBeEdited].content === 'string')
+        draft[msgIndexToBeEdited].content = val
+      else {
+        const target = draft[msgIndexToBeEdited].content.find(
+          (item) => item.type === 'input_text',
+        )
+        target!.text = val
+      }
+      draft.splice(msgIndexToBeEdited + 1)
+    })
+    setMessages(editedMessages)
+    await send({ editedMessages })
+  }
+
   useEffect(() => {
     if (!initialMessage || hasSentInitial.current) return
     hasSentInitial.current = true
@@ -244,20 +263,7 @@ export default function Chat() {
                 key={msgIndex}
                 msg={msg}
                 setMsgIndexToBeEdited={setMsgIndexToBeEdited}
-                handleMsgUpdate={(val) => {
-                  setMessages(
-                    produce((draft) => {
-                      if (typeof draft[msgIndexToBeEdited].content === 'string')
-                        draft[msgIndexToBeEdited].content = val
-                      else {
-                        const target = draft[msgIndexToBeEdited].content.find(
-                          (item) => item.type === 'input_text',
-                        )
-                        target!.text = val
-                      }
-                    }),
-                  )
-                }}
+                handleMsgUpdate={handleMsgUpdate}
               />
             ) : (
               <div key={msgIndex} className="group">

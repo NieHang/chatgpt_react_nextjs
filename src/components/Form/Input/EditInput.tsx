@@ -32,7 +32,7 @@ export default function EditInput({
         onChange={(e) => setTextareaVal(e.target.value)}
       ></textarea>
       <div className="flex items-center gap-2 place-self-end mt-4">
-        <div
+        <button
           className={clsx(
             'px-4 py-1.5 border-gray-100 rounded-2xl bg-white',
             'hover:bg-gray-50',
@@ -41,12 +41,14 @@ export default function EditInput({
           onClick={() => setMsgIndexToBeEdited(null)}
         >
           Cancel
-        </div>
-        <div
+        </button>
+        <button
+          disabled={!textareaVal}
           className={clsx(
             'px-4 py-1.5 border-gray-100 rounded-2xl bg-black text-white',
-            'hover:bg-gray-900',
-            'cursor-pointer',
+            !textareaVal
+              ? 'bg-gray-400 hover:bg-gray-400 cursor-not-allowed'
+              : 'hover:bg-gray-900 cursor-pointer',
           )}
           onClick={() => {
             handleMsgUpdate(textareaVal)
@@ -54,7 +56,7 @@ export default function EditInput({
           }}
         >
           Send
-        </div>
+        </button>
       </div>
     </div>
   )
