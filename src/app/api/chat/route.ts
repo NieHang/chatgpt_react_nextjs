@@ -17,6 +17,15 @@ function getMessageText(content: ConversationMessage['content']) {
 
   return content.find((item) => item.type === 'input_text')?.text ?? ''
 }
+
+function normalizeMessageDates(message: ConversationMessage) {
+  return {
+    ...message,
+    createdAt: new Date(message.createdAt),
+    ...(message.updateAt ? { updateAt: new Date(message.updateAt) } : {}),
+  }
+}
+
 export async function POST(req: NextRequest) {
   const {
     messages,
@@ -78,7 +87,7 @@ export async function POST(req: NextRequest) {
 
   await runWithDb('Error persisting user conversation', async () => {
     const timestamp = new Date()
-    const messages: ConversationMessage = {
+    const userMessage: ConversationMessage = {
       role: MsgRoles.USER,
       content: userContent,
       ...(userAttachments?.length ? { attachments: userAttachments } : {}),
@@ -92,7 +101,7 @@ export async function POST(req: NextRequest) {
       await conversationsCollection?.insertOne({
         _id: _cid,
         title,
-        messages: [messages],
+        messages: [userMessage],
         createdAt: timestamp,
         updatedAt: timestamp,
       })
@@ -100,10 +109,8 @@ export async function POST(req: NextRequest) {
       await conversationsCollection?.updateOne(
         { _id: _cid },
         {
-          $push: {
-            messages,
-          },
           $set: {
+            messages: messages.map(normalizeMessageDates),
             updatedAt: timestamp,
           },
         },
