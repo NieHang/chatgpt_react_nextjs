@@ -32,6 +32,30 @@ export default function MessageMarkdown({ message }: { message: string }) {
           <ol className="mb-3 ml-5 list-decimal space-y-1">{children}</ol>
         ),
         li: ({ children }) => <li className="leading-7">{children}</li>,
+        table: ({ children }) => (
+          <div className="mb-3 overflow-x-auto">
+            <table className="w-full border-collapse text-left text-sm">
+              {children}
+            </table>
+          </div>
+        ),
+        thead: ({ children }) => (
+          <thead className="border-b border-zinc-300 bg-zinc-50">
+            {children}
+          </thead>
+        ),
+        tbody: ({ children }) => <tbody>{children}</tbody>,
+        tr: ({ children }) => (
+          <tr className="border-b border-zinc-200 last:border-b-0">
+            {children}
+          </tr>
+        ),
+        th: ({ children }) => (
+          <th className="px-3 py-2 font-semibold text-zinc-900">{children}</th>
+        ),
+        td: ({ children }) => (
+          <td className="px-3 py-2 align-top text-zinc-800">{children}</td>
+        ),
         a: ({ children, href }) => (
           <a
             className="text-blue-600 underline underline-offset-2"
