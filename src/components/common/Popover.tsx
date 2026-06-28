@@ -9,6 +9,7 @@ import {
 import clsx from 'clsx'
 import { CSSProperties, PropsWithChildren, useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { offset } from '@floating-ui/dom'
 
 type Alignment = 'start' | 'end'
 type Side = 'top' | 'right' | 'bottom' | 'left'
@@ -19,6 +20,8 @@ interface PopoverProps extends PropsWithChildren {
   trigger?: 'hover' | 'click'
   placement?: AlignedPlacement | Side
   className?: string
+  floatingClassName?: string
+  distance?: number
   style?: CSSProperties
   open?: boolean
   onOpenChange?: (open: boolean) => void
@@ -30,6 +33,8 @@ export default function Popover(props: PopoverProps) {
     trigger = 'click',
     placement = 'bottom',
     className,
+    floatingClassName,
+    distance,
     style,
     children,
     open,
@@ -50,7 +55,7 @@ export default function Popover(props: PopoverProps) {
       onOpenChange?.(nextOpen)
     },
     placement,
-    middleware: [flip()],
+    middleware: [flip(), offset(distance || 0)],
   })
 
   const clickInteraction = useClick(context, { enabled: trigger === 'click' })
@@ -80,7 +85,7 @@ export default function Popover(props: PopoverProps) {
       style={floatingStyles}
       {...getFloatingProps()}
       className={clsx(
-        'border-gray-300 border-1 rounded-2xl py-2 px-3 z-10 bg-white',
+        floatingClassName,
         'transition-opacity duration-150',
         isOpen ? 'opacity-100' : 'opacity-0 invisible',
       )}

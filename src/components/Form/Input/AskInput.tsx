@@ -6,6 +6,7 @@ import FileInput from '@/components/Form/Input/FileInput'
 import UploadedFiles from '@/components/Form/UploadedFiles'
 import { OPTION_TYPE } from '@/constants/form'
 import { Attachment } from '@/types/Form'
+import Tip from '@/components/common/Tip'
 
 export default function AskInput({
   value,
@@ -78,18 +79,41 @@ export default function AskInput({
         <Popover
           content={attachmentOptionJSX}
           placement="top-start"
+          floatingClassName="border-gray-300 border-1 rounded-2xl py-2 px-3 z-10 bg-white"
           open={isAttachmentPopoverOpen}
           onOpenChange={setIsAttachmentPopoverOpen}
         >
-          <div
-            className={clsx(
-              'p-2 rounded-full mr-1',
-              'cursor-pointer',
-              'hover:bg-gray-100',
-            )}
+          <Tip
+            tipContent={
+              <div className="flex items-center gap-2">
+                <span>Add files and more</span>
+                <div
+                  className={clsx(
+                    'flex items-center justify-center p-1',
+                    'rounded-[4px]',
+                    'bg-gray-600',
+                  )}
+                >
+                  <Image
+                    src="/common/@.svg"
+                    alt="Send Prompt"
+                    width={10}
+                    height={10}
+                  />
+                </div>
+              </div>
+            }
           >
-            <Image src="/common/plus.svg" alt="plus" width={20} height={20} />
-          </div>
+            <div
+              className={clsx(
+                'p-2 rounded-full mr-1',
+                'cursor-pointer',
+                'hover:bg-gray-100',
+              )}
+            >
+              <Image src="/common/plus.svg" alt="plus" width={20} height={20} />
+            </div>
+          </Tip>
         </Popover>
         <input
           type="text"
@@ -104,6 +128,34 @@ export default function AskInput({
             }
           }}
         />
+        <Tip
+          tipContent={
+            <div className="flex items-center gap-2">
+              <span>Send Prompt</span>
+              <Image
+                src="/common/enter-key.svg"
+                alt="Send Prompt"
+                width={15}
+                height={15}
+              />
+            </div>
+          }
+        >
+          <div
+            className={clsx(
+              'w-[36px] h-[36px] bg-[#e0766d] rounded-full',
+              'flex items-center justify-center shrink-0',
+              'cursor-pointer',
+            )}
+          >
+            <Image
+              src="/common/top-arrow.svg"
+              alt="send message"
+              width={30}
+              height={30}
+            />
+          </div>
+        </Tip>
       </div>
     </div>
   )
