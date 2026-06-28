@@ -16,6 +16,7 @@ import type { ResponseInputMessageContentList } from 'openai/resources/responses
 import FileAttachment from '@/components/common/FileAttachment'
 import EditInput from './Form/Input/EditInput'
 import { produce } from 'immer'
+import MessageMarkdown from '@/components/common/MessageMarkdown'
 
 function buildInputContent(
   files: UploadedFile[],
@@ -304,13 +305,15 @@ export default function Chat() {
                     }`,
                   )}
                 >
-                  {typeof msg.content === 'string'
-                    ? msg.content
-                    : msg.content.map((item, index) =>
-                        item.type === 'input_text' ? (
-                          <span key={index}>{item.text}</span>
-                        ) : null,
-                      )}
+                  {typeof msg.content === 'string' ? (
+                    <MessageMarkdown message={msg.content} />
+                  ) : (
+                    msg.content.map((item, index) =>
+                      item.type === 'input_text' ? (
+                        <MessageMarkdown key={index} message={item.text} />
+                      ) : null,
+                    )
+                  )}
                 </div>
                 <div
                   className={clsx(
