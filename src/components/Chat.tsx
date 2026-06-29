@@ -17,6 +17,7 @@ import FileAttachment from '@/components/common/FileAttachment'
 import EditInput from './Form/Input/EditInput'
 import { produce } from 'immer'
 import MessageMarkdown from '@/components/common/MessageMarkdown'
+import { useModel } from '@/stores/modelStore'
 
 function buildInputContent(
   files: UploadedFile[],
@@ -47,6 +48,8 @@ export default function Chat() {
   const searchParams = useSearchParams()
   const { id: conversationId } = useParams()
   const initialMessage = searchParams.get('initialMessage')
+
+  const modelState = useModel((state) => state)
 
   const { refreshConversations } = useConversations()
 
@@ -126,6 +129,8 @@ export default function Chat() {
 
       try {
         const res = await chat({
+          model: modelState.model.model,
+          intelligence: modelState.intelligence,
           messages: nextMessages,
           conversationId,
           isNewChat: !!initialMessage,

@@ -6,16 +6,8 @@ import Image from 'next/image'
 import { useState } from 'react'
 import Tip from '@/components/common/Tip'
 import { useModel } from '@/stores/modelStore'
-
-interface Model {
-  name: string
-  model: string
-  alias: string
-  intelligenceTypes: {
-    name: string
-    type?: string
-  }[]
-}
+import { intelligenceToReasoningEffort } from '@/constants/model'
+import type { IntelligenceType, Model } from '@/types/Model'
 
 export default function ModelList() {
   const models: Model[] = [
@@ -26,14 +18,15 @@ export default function ModelList() {
       intelligenceTypes: [
         {
           name: 'Instant',
+          type: intelligenceToReasoningEffort.Instant,
         },
         {
           name: 'Medium',
-          type: 'Medium',
+          type: intelligenceToReasoningEffort.Medium,
         },
         {
           name: 'Thinking',
-          type: 'Thinking',
+          type: intelligenceToReasoningEffort.Thinking,
         },
       ],
     },
@@ -44,24 +37,15 @@ export default function ModelList() {
       intelligenceTypes: [
         {
           name: 'Instant',
+          type: intelligenceToReasoningEffort.Instant,
         },
         {
           name: 'Medium',
-          type: 'Medium',
+          type: intelligenceToReasoningEffort.Medium,
         },
         {
           name: 'Thinking',
-          type: 'Thinking',
-        },
-      ],
-    },
-    {
-      name: 'GPT-5.3',
-      model: 'gpt-5.3',
-      alias: '5.3',
-      intelligenceTypes: [
-        {
-          name: 'Instant',
+          type: intelligenceToReasoningEffort.Thinking,
         },
       ],
     },
@@ -69,25 +53,25 @@ export default function ModelList() {
       name: 'GPT-4o-Mini',
       model: 'gpt-4o-mini',
       alias: '4o-mini',
-      intelligenceTypes: [
-        {
-          name: 'Instant',
-        },
-      ],
     },
   ]
 
-  const [currentModel, setCurrentModel] = useState(models[0])
-  const [currentIntelligenceType, setCurrentIntelligenceType] = useState(
-    models[0].intelligenceTypes[0],
-  )
+  const useModelState = useModel((state) => state)
 
-  const updateModel = useModel((state) => state.updateModel)
+  const [currentModel, setCurrentModel] = useState(useModelState.model)
+  const [currentIntelligenceType, setCurrentIntelligenceType] =
+    useState<IntelligenceType>({
+      name: useModelState.intelligence,
+      type:
+        useModelState.model?.intelligenceTypes?.find(
+          (item) => item.name === useModelState.intelligence,
+        )?.type || '',
+    })
 
   const intelligenceTypeListJSX = (
     <div className="flex flex-col w-[200px]">
       <span className="text-gray-400 text-xm mb-0.5">Intelligence</span>
-      {currentModel.intelligenceTypes.map((intelligenceType) => (
+      {currentModel.intelligenceTypes?.map((intelligenceType) => (
         <div
           key={intelligenceType.name}
           className={clsx(
@@ -156,15 +140,23 @@ export default function ModelList() {
 
   function handleSetCurrentModel(model: Model) {
     setCurrentModel(model)
-    const intelligenceType = !model.intelligenceTypes.find(
-      (item) => item.name === currentIntelligenceType.name,
-    )
-      ? model.intelligenceTypes[0]
-      : currentIntelligenceType
+
+    let intelligenceType: IntelligenceType = {
+      name: '',
+      type: '',
+    }
+    if (model.intelligenceTypes) {
+      intelligenceType = !model.intelligenceTypes.find(
+        (item) => item.name === currentIntelligenceType.name,
+      )
+        ? model.intelligenceTypes[0]
+        : currentIntelligenceType
+    }
+
     setCurrentIntelligenceType(intelligenceType)
 
-    updateModel({
-      model: model.model,
+    useModelState.updateModel({
+      model,
       intelligence: intelligenceType.name,
     })
   }

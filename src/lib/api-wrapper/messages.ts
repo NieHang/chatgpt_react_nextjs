@@ -12,11 +12,15 @@ export function getConversations(conversationId?: string) {
 }
 
 export function chat({
+  model,
+  intelligence,
   messages,
   conversationId,
   isNewChat,
   signal,
 }: {
+  model: string
+  intelligence: string
   messages: ConversationMessage[]
   conversationId: ParamValue
   isNewChat: boolean
@@ -25,6 +29,8 @@ export function chat({
   return apiFetch('/api/chat', {
     method: 'POST',
     json: {
+      model,
+      intelligence,
       messages,
       conversationId,
       isNewChat,

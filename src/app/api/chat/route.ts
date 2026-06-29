@@ -9,6 +9,7 @@ import {
   ResponseCreateParamsStreaming,
 } from 'openai/resources/responses/responses.js'
 import getOpenAIClient from '@/lib/openAIClient'
+import { intelligenceToReasoningEffort } from '@/constants/model'
 
 export const runtime = 'nodejs'
 
@@ -28,10 +29,14 @@ function normalizeMessageDates(message: ConversationMessage) {
 
 export async function POST(req: NextRequest) {
   const {
+    model,
+    intelligence,
     messages,
     conversationId,
     isNewChat,
   }: {
+    model: string
+    intelligence: string
     messages: ConversationMessage[]
     conversationId: string
     isNewChat: boolean
@@ -69,14 +74,25 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  const reasoningEffort =
+    intelligenceToReasoningEffort[
+      intelligence as keyof typeof intelligenceToReasoningEffort
+    ]
+
   const fetchOptions: ResponseCreateParamsStreaming = {
-    model: 'gpt-4o-mini',
+    model: model,
     stream: true,
     input: messages?.map(({ role, content }) => ({
       role: role === MsgRoles.TOOL ? MsgRoles.USER : role,
       content,
     })) as EasyInputMessage[],
-    temperature: 0.7,
+    ...(reasoningEffort
+      ? {
+          reasoning: {
+            effort: reasoningEffort,
+          },
+        }
+      : {}),
   }
 
   const result = await openAIClient.responses.create(fetchOptions)
