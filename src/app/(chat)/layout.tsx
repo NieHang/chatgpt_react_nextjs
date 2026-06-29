@@ -1,7 +1,6 @@
 import { ConversationProvider } from '@/providers/ConversationProvider'
 import { ReactNode } from 'react'
 import SideBar from '@/components/SideBar'
-import ModelSwitch from '@/components/ModelSwitch'
 import Image from 'next/image'
 
 export default function ChatLayout({ children }: { children: ReactNode }) {
@@ -12,7 +11,6 @@ export default function ChatLayout({ children }: { children: ReactNode }) {
         <section className="relative w-full flex flex-col items-center">
           <div className="w-full sticky top-0">
             <div className="p-2 flex items-center justify-between bg-white z-10">
-              <ModelSwitch />
               <div className="p-2 rounded-2xl hover:bg-gray-200 cursor-pointer">
                 <Image
                   src="/common/temp-chat.svg"

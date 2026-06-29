@@ -22,7 +22,8 @@
     "rehype-raw": "^7.0.0",
     "remark-gfm": "^4.0.1",
     "swiper": "^12.2.0",
-    "undici": "^7.27.2"
+    "undici": "^7.27.2",
+    "zustand": "^5.0.14"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",

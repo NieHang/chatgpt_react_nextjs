@@ -7,6 +7,7 @@ import UploadedFiles from '@/components/Form/UploadedFiles'
 import { OPTION_TYPE } from '@/constants/form'
 import { Attachment } from '@/types/Form'
 import Tip from '@/components/common/Tip'
+import ModelSwitch from '@/components/ModelSwitch'
 
 export default function AskInput({
   value,
@@ -75,7 +76,7 @@ export default function AskInput({
       <div className={clsx('mx-[-8px]')}>
         {!!files.length && <UploadedFiles files={files} setFiles={setFiles} />}
       </div>
-      <div className={clsx('flex items-center')}>
+      <div className={clsx('flex items-center gap-2')}>
         <Popover
           content={attachmentOptionJSX}
           placement="top-start"
@@ -111,7 +112,7 @@ export default function AskInput({
                 'hover:bg-gray-100',
               )}
             >
-              <Image src="/common/plus.svg" alt="plus" width={20} height={20} />
+              <Image src="/common/plus.svg" alt="plus" width={30} height={30} />
             </div>
           </Tip>
         </Popover>
@@ -128,6 +129,7 @@ export default function AskInput({
             }
           }}
         />
+        <ModelSwitch />
         <Tip
           tipContent={
             <div className="flex items-center gap-2">

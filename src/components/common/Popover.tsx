@@ -1,15 +1,17 @@
 import {
+  autoUpdate,
   useInteractions,
   useFloating,
   useDismiss,
   useClick,
   flip,
   useHover,
+  shift,
 } from '@floating-ui/react'
 import clsx from 'clsx'
 import { CSSProperties, PropsWithChildren, useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { offset } from '@floating-ui/dom'
+import { offset } from '@floating-ui/react'
 
 type Alignment = 'start' | 'end'
 type Side = 'top' | 'right' | 'bottom' | 'left'
@@ -55,7 +57,8 @@ export default function Popover(props: PopoverProps) {
       onOpenChange?.(nextOpen)
     },
     placement,
-    middleware: [flip(), offset(distance || 0)],
+    middleware: [offset(distance || 0), flip(), shift({ padding: 8 })],
+    whileElementsMounted: autoUpdate,
   })
 
   const clickInteraction = useClick(context, { enabled: trigger === 'click' })
@@ -104,7 +107,7 @@ export default function Popover(props: PopoverProps) {
       >
         {children}
       </span>
-      {el && createPortal(floating, el)}
+      {isOpen && el && createPortal(floating, el)}
     </>
   )
 }
