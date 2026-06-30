@@ -191,7 +191,7 @@ export default function Chat() {
         if (abortRef.current === ac) abortRef.current = null
       }
     },
-    [conversationId, input, initialMessage, messages],
+    [conversationId, input, initialMessage, messages, modelState],
   )
 
   const handleMsgUpdate = async (val: string) => {
@@ -382,7 +382,7 @@ export default function Chat() {
         className={clsx(
           'absolute bottom-[50px]',
           'flex flex-col justify-center',
-          'w-full rounded-3xl z-10 bg-white',
+          'w-full rounded-tl-3xl rounded-tr-3xl z-10 bg-white',
         )}
       >
         <AskInput
