@@ -25,6 +25,7 @@ export default function Tip({
         </div>
       }
       placement="bottom"
+      floatingClassName="z-50"
     >
       {children}
     </Popover>

@@ -143,12 +143,17 @@ export default function AskInput({
             </div>
           }
         >
-          <div
+          <button
+            disabled={!value}
             className={clsx(
               'w-[36px] h-[36px] bg-[#e0766d] rounded-full',
               'flex items-center justify-center shrink-0',
-              'cursor-pointer',
+              !value ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer',
             )}
+            onClick={() => {
+              onKeyDown(files)
+              setFiles([])
+            }}
           >
             <Image
               src="/common/top-arrow.svg"
@@ -156,7 +161,7 @@ export default function AskInput({
               width={30}
               height={30}
             />
-          </div>
+          </button>
         </Tip>
       </div>
     </div>
