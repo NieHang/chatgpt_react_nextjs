@@ -10,6 +10,10 @@
   },
   "dependencies": {
     "@floating-ui/react": "^0.27.16",
+    "@tiptap/extension-document": "^3.27.1",
+    "@tiptap/extension-paragraph": "^3.27.1",
+    "@tiptap/extension-text": "^3.27.1",
+    "@tiptap/react": "^3.27.1",
     "axios": "^1.13.1",
     "clsx": "^2.1.1",
     "immer": "^11.1.8",

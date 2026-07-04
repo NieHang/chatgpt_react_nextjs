@@ -8,6 +8,11 @@ import { OPTION_TYPE } from '@/constants/form'
 import { Attachment } from '@/types/Form'
 import Tip from '@/components/common/Tip'
 import ModelSwitch from '@/components/ModelSwitch'
+import { EditorContent, useEditor } from '@tiptap/react'
+import { ToolChipNode } from '@/components/TipTap/ToolChipNode'
+import Document from '@tiptap/extension-document'
+import Paragraph from '@tiptap/extension-paragraph'
+import Text from '@tiptap/extension-text'
 
 export default function AskInput({
   value,
@@ -25,10 +30,35 @@ export default function AskInput({
       icon: '/attachment-options/pins.svg',
       keyword: 'Ctrl + U',
     },
+    {
+      type: OPTION_TYPE.IMAGE,
+      label: 'Create image',
+      icon: '/attachment-options/image.svg',
+    },
   ]
 
   const [files, setFiles] = useState<Attachment[]>([])
   const [isAttachmentPopoverOpen, setIsAttachmentPopoverOpen] = useState(false)
+
+  const editor = useEditor({
+    extensions: [Document, Paragraph, Text, ToolChipNode],
+    content: value,
+    onUpdate: ({ editor }) => {
+      onChange(editor.getText())
+    },
+    editorProps: {
+      handleKeyDown(view, e) {
+        if (e.key === 'Enter') {
+          e.preventDefault()
+          onKeyDown(files)
+          onChange('')
+          setFiles([])
+          return true
+        }
+        return false
+      },
+    },
+  })
 
   const attachmentOptionJSX = (
     <div className="flex flex-col w-[250px] bg-white">
@@ -40,6 +70,20 @@ export default function AskInput({
             'flex items-center -mx-1.5 px-3 py-1 cursor-pointer',
             'hover:bg-gray-100 rounded-[12px]',
           )}
+          onClick={() => {
+            editor
+              ?.chain()
+              .focus()
+              .insertContent({
+                type: 'toolChip',
+                attrs: {
+                  kind: option.type,
+                  label: option.label,
+                  icon: option.icon,
+                },
+              })
+              .run()
+          }}
         >
           <Image
             src={option.icon}
@@ -49,14 +93,18 @@ export default function AskInput({
             className="mr-2"
           ></Image>
           <div className="flex items-center justify-between w-full">
-            <span>{option.label}</span>
-            <span className="hidden text-gray-300 group-hover:block">
-              {option.keyword}
-            </span>
-            <FileInput
-              setFiles={setFiles}
-              onFilesSelected={() => setIsAttachmentPopoverOpen(false)}
-            />
+            <span className="whitespace-nowrap">{option.label}</span>
+            {option.type === OPTION_TYPE.FILE && (
+              <>
+                <span className="hidden text-gray-300 group-hover:block">
+                  {option.keyword}
+                </span>
+                <FileInput
+                  setFiles={setFiles}
+                  onFilesSelected={() => setIsAttachmentPopoverOpen(false)}
+                />
+              </>
+            )}
           </div>
         </label>
       ))}
@@ -112,22 +160,13 @@ export default function AskInput({
                 'hover:bg-gray-100',
               )}
             >
-              <Image src="/common/plus.svg" alt="plus" width={30} height={30} />
+              <Image src="/common/plus.svg" alt="plus" width={40} height={40} />
             </div>
           </Tip>
         </Popover>
-        <input
-          type="text"
-          value={value}
-          placeholder="Ask anything"
-          className="w-full outline-none border-none bg-transparent"
-          onChange={(e) => onChange(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              onKeyDown(files)
-              setFiles([])
-            }
-          }}
+        <EditorContent
+          editor={editor}
+          className="w-full min-w-0 [&_.ProseMirror]:outline-none"
         />
         <ModelSwitch />
         <Tip
