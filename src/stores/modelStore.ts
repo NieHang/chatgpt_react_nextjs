@@ -1,9 +1,11 @@
 import { create } from 'zustand'
 import type { Model } from '@/types/Model'
+import { Tool } from 'openai/resources/responses/responses.js'
 
 interface ModelState {
   model: Model
   intelligence: string
+  tool?: Tool
   updateModel: ({
     model,
     intelligence,
@@ -11,6 +13,7 @@ interface ModelState {
     model: Model
     intelligence: string | undefined
   }) => void
+  updateTool: (tool?: Tool) => void
 }
 
 export const useModel = create<ModelState>((set) => ({
@@ -20,5 +23,7 @@ export const useModel = create<ModelState>((set) => ({
     alias: '4o-mini',
   },
   intelligence: '',
+  tool: undefined,
   updateModel: ({ model, intelligence }) => set({ model, intelligence }),
+  updateTool: (tool?: Tool) => set({ tool }),
 }))

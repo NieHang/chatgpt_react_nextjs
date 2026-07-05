@@ -131,6 +131,7 @@ export default function Chat() {
         const res = await chat({
           model: modelState.model.model,
           intelligence: modelState.intelligence,
+          tool: modelState.tool,
           messages: nextMessages,
           conversationId,
           isNewChat: !!initialMessage,

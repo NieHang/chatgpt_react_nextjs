@@ -2,6 +2,7 @@ import { apiFetch, fetchJson } from '@/lib/apiFetch'
 import { Conversation, ConversationMessage } from '@/types/Conversation'
 import { ParamValue } from 'next/dist/server/request/params'
 import type { UploadedFile } from '@/types/UploadedFile'
+import { Tool } from 'openai/resources/responses/responses.js'
 
 export function getConversations(conversationId?: string) {
   return fetchJson<Conversation[]>(
@@ -14,6 +15,7 @@ export function getConversations(conversationId?: string) {
 export function chat({
   model,
   intelligence,
+  tool,
   messages,
   conversationId,
   isNewChat,
@@ -21,6 +23,7 @@ export function chat({
 }: {
   model: string
   intelligence: string
+  tool?: Tool
   messages: ConversationMessage[]
   conversationId: ParamValue
   isNewChat: boolean
@@ -31,6 +34,7 @@ export function chat({
     json: {
       model,
       intelligence,
+      tool,
       messages,
       conversationId,
       isNewChat,

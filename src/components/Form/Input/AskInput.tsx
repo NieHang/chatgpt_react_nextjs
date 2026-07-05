@@ -13,6 +13,10 @@ import { ToolChipNode } from '@/components/TipTap/ToolChipNode'
 import Document from '@tiptap/extension-document'
 import Paragraph from '@tiptap/extension-paragraph'
 import Text from '@tiptap/extension-text'
+import { useModel } from '@/stores/modelStore'
+import { toolChipKind } from '@/constants/model'
+import { AttachmentOption } from '@/types/Form'
+import { insertToolChip } from '@/utils/TipTap/InsertToolChip'
 
 export default function AskInput({
   value,
@@ -23,7 +27,7 @@ export default function AskInput({
   onChange: (value: string) => void
   onKeyDown: (inputFiles: Attachment[]) => void
 }) {
-  const attachmentOptions = [
+  const attachmentOptions: AttachmentOption[] = [
     {
       type: OPTION_TYPE.FILE,
       label: 'Add photos & files',
@@ -40,11 +44,27 @@ export default function AskInput({
   const [files, setFiles] = useState<Attachment[]>([])
   const [isAttachmentPopoverOpen, setIsAttachmentPopoverOpen] = useState(false)
 
+  const updateTool = useModel((state) => state.updateTool)
+
   const editor = useEditor({
     extensions: [Document, Paragraph, Text, ToolChipNode],
     content: value,
     onUpdate: ({ editor }) => {
       onChange(editor.getText())
+      let hasToolChip = false
+
+      editor.state.doc.descendants((node) => {
+        if (node.type.name === 'toolChip') {
+          hasToolChip = true
+          return false
+        }
+
+        return true
+      })
+
+      if (!hasToolChip) {
+        updateTool(undefined)
+      }
     },
     editorProps: {
       handleKeyDown(view, e) {
@@ -71,18 +91,13 @@ export default function AskInput({
             'hover:bg-gray-100 rounded-[12px]',
           )}
           onClick={() => {
-            editor
-              ?.chain()
-              .focus()
-              .insertContent({
-                type: 'toolChip',
-                attrs: {
-                  kind: option.type,
-                  label: option.label,
-                  icon: option.icon,
-                },
-              })
-              .run()
+            if (editor) {
+              insertToolChip(editor, option)
+            }
+
+            updateTool({
+              type: toolChipKind[option.type as keyof typeof toolChipKind],
+            })
           }}
         >
           <Image
@@ -206,3 +221,4 @@ export default function AskInput({
     </div>
   )
 }
+

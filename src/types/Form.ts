@@ -1,3 +1,5 @@
+import { OPTION_TYPE } from '@/constants/form'
+
 export interface Attachment {
   name: string
   isImage: boolean
@@ -5,4 +7,11 @@ export interface Attachment {
   previewSrc?: string
   type: string
   file: File
+}
+
+export interface AttachmentOption {
+  type: OPTION_TYPE
+  label: string
+  icon: string
+  keyword?: string
 }

@@ -7,6 +7,7 @@ import generateTitle from '@/app/api/chat/generateTitle'
 import {
   EasyInputMessage,
   ResponseCreateParamsStreaming,
+  Tool,
 } from 'openai/resources/responses/responses.js'
 import getOpenAIClient from '@/lib/openAIClient'
 import { intelligenceToReasoningEffort } from '@/constants/model'
@@ -31,12 +32,14 @@ export async function POST(req: NextRequest) {
   const {
     model,
     intelligence,
+    tool,
     messages,
     conversationId,
     isNewChat,
   }: {
     model: string
     intelligence: string
+    tool?: Tool
     messages: ConversationMessage[]
     conversationId: string
     isNewChat: boolean
@@ -93,6 +96,7 @@ export async function POST(req: NextRequest) {
           },
         }
       : {}),
+    tools: tool ? [tool] : [],
   }
 
   const result = await openAIClient.responses.create(fetchOptions)
