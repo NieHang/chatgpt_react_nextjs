@@ -99,7 +99,20 @@ export async function POST(req: NextRequest) {
     tools: tool ? [tool] : [],
   }
 
-  const result = await openAIClient.responses.create(fetchOptions)
+  let result
+
+  try {
+    result = await openAIClient.responses.create(fetchOptions)
+  } catch (error: any) {
+    return Response.json(
+      {
+        code: error.status,
+        message: error.message,
+        errorType: error.type,
+      },
+      { status: error.status },
+    )
+  }
 
   const lastUser = [...messages].reverse().find((m) => m.role === MsgRoles.USER)
   const userContent = lastUser?.content ?? ''

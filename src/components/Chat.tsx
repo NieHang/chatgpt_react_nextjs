@@ -18,6 +18,7 @@ import EditInput from './Form/Input/EditInput'
 import { produce } from 'immer'
 import MessageMarkdown from '@/components/common/MessageMarkdown'
 import { useModel } from '@/stores/modelStore'
+import { ApiError } from '@/lib/ApiError'
 
 function buildInputContent(
   files: UploadedFile[],
@@ -139,8 +140,13 @@ export default function Chat() {
         })
         setIsThinking(false)
         if (!res.ok || !res.body) {
-          console.error('Error from API', await res.text())
-          return
+          const errorBody = await res.json().catch(() => null)
+
+          throw new ApiError(
+            errorBody?.message,
+            res.status,
+            errorBody?.errorType,
+          )
         }
 
         const reader = res.body.getReader()
@@ -178,13 +184,23 @@ export default function Chat() {
             (m, index) =>
               m.role === MsgRoles.ASSISTANT && index === cp.length - 1,
           )
-          if (i >= 0)
+          const errorContent = (error as Error).message
+
+          if (i >= 0) {
             cp[i] = {
               ...cp[i],
-              content:
-                cp[i].content + '\n\n[Error: ' + (error as Error).message + ']',
+              content: cp[i].content + '\n\n' + errorContent,
               isError: true,
             }
+          } else {
+            cp.push({
+              role: MsgRoles.ASSISTANT,
+              content: errorContent,
+              createdAt: new Date(),
+              isError: true,
+            })
+          }
+
           return cp
         })
       } finally {
@@ -210,6 +226,12 @@ export default function Chat() {
     })
     setMessages(editedMessages)
     await send({ editedMessages })
+  }
+
+  const extractMessageContent = (msg: ConversationMessage): string => {
+    if (typeof msg.content === 'string') return msg.content
+    const target = msg.content.find((item) => item.type === 'input_text')
+    return target?.text ?? ''
   }
 
   useEffect(() => {
@@ -274,6 +296,7 @@ export default function Chat() {
               />
             ) : (
               <div key={msgIndex} className="group">
+                {/* attachments */}
                 {msg.attachments?.map((file) => (
                   <div
                     key={file.mongoFileId}
@@ -300,67 +323,82 @@ export default function Chat() {
                     )}
                   </div>
                 ))}
+                {/* message content */}
                 <div
                   className={clsx(
-                    'max-w-lg',
                     'data-[multiline]:py-3',
                     `rounded-[18px] ${
                       msg?.role === MsgRoles.USER
                         ? 'place-self-end px-4 py-1.5 bg-pink-50 text-[#4d1f34]'
                         : 'place-self-start text-black'
                     }`,
+                    msg.isError
+                      ? 'flex items-center justify-between gap-5 px-4 py-2 bg-red-100 text-red-500'
+                      : 'max-w-lg',
                   )}
                 >
-                  {typeof msg.content === 'string' ? (
-                    <MessageMarkdown message={msg.content} />
+                  {msg.isError ? (
+                    <>
+                      {extractMessageContent(msg)}
+                      <div
+                        className={clsx(
+                          'whitespace-nowrap',
+                          'px-2 py-1 bg-white rounded-xl text-black',
+                          'cursor-pointer',
+                        )}
+                        onClick={() => {
+                          setMessages((prev) => prev.slice(0, -1))
+                          send({
+                            contentArg: messages[messages.length - 2]
+                              ?.content as string,
+                          })
+                        }}
+                      >
+                        try again
+                      </div>
+                    </>
                   ) : (
-                    msg.content.map((item, index) =>
-                      item.type === 'input_text' ? (
-                        <MessageMarkdown key={index} message={item.text} />
-                      ) : null,
-                    )
+                    <MessageMarkdown message={extractMessageContent(msg)} />
                   )}
                 </div>
-                <div
-                  className={clsx(
-                    'flex items-center justify-end invisible mt-1',
-                    'group-hover:visible',
-                    msg?.role === MsgRoles.USER
-                      ? 'place-self-end'
-                      : 'place-self-start',
-                  )}
-                >
-                  {messageOptions.map(
-                    (option, index) =>
-                      option.types.includes(msg.role) && (
-                        <div
-                          key={index}
-                          className={clsx(
-                            'flex items-center justify-center p-2 cursor-pointer',
-                            'hover:bg-gray-200 rounded-xl',
-                          )}
-                          onClick={() =>
-                            option.fn({
-                              message:
-                                typeof msg.content === 'string'
-                                  ? msg.content
-                                  : msg.content.find(
-                                      (item) => item.type === 'input_text',
-                                    )!.text,
-                              index: msgIndex,
-                            })
-                          }
-                        >
-                          <Image
-                            src={option.src}
-                            alt={option.alt}
-                            width={20}
-                            height={20}
-                          />
-                        </div>
-                      ),
-                  )}
-                </div>
+                {/* options */}
+                {!msg.isError && (
+                  <div
+                    className={clsx(
+                      'flex items-center justify-end invisible mt-1',
+                      'group-hover:visible',
+                      msg?.role === MsgRoles.USER
+                        ? 'place-self-end'
+                        : 'place-self-start',
+                    )}
+                  >
+                    {messageOptions.map(
+                      (option, index) =>
+                        option.types.includes(msg.role) && (
+                          <div
+                            key={index}
+                            className={clsx(
+                              'flex items-center justify-center p-2 cursor-pointer',
+                              'hover:bg-gray-200 rounded-xl',
+                            )}
+                            onClick={() =>
+                              option.fn({
+                                message: extractMessageContent(msg),
+                                index: msgIndex,
+                              })
+                            }
+                          >
+                            <Image
+                              src={option.src}
+                              alt={option.alt}
+                              width={20}
+                              height={20}
+                            />
+                          </div>
+                        ),
+                    )}
+                  </div>
+                )}
               </div>
             ),
           )}

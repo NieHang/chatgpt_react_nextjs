@@ -1,3 +1,5 @@
+import { ApiError } from './ApiError'
+
 type ApiResponse<T> = {
   code: number
   message: string
@@ -47,7 +49,11 @@ export async function fetchJson<T>(
   const body = await response.json().catch(() => null)
 
   if (!response.ok) {
-    throw new Error(`Request failed with status ${response.status}`)
+    throw new ApiError(
+      body.message,
+      response.status,
+      body?.errorType ?? 'unknown',
+    )
   }
 
   return {
