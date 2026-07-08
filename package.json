@@ -19,6 +19,7 @@
     "immer": "^11.1.8",
     "mongodb": "^6.19.0",
     "next": "15.5.3",
+    "next-auth": "^5.0.0-beta.31",
     "openai": "^6.42.0",
     "react": "19.1.0",
     "react-dom": "19.1.0",

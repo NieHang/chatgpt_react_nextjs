@@ -1,9 +1,15 @@
+'use client'
+
 import { ConversationProvider } from '@/providers/ConversationProvider'
 import { ReactNode } from 'react'
 import SideBar from '@/components/SideBar'
 import Image from 'next/image'
+import AuthDialog from '@/components/auth/AuthDialog'
+import React from 'react'
 
 export default function ChatLayout({ children }: { children: ReactNode }) {
+  const [isOpen, setIsOpen] = React.useState(true)
+
   return (
     <ConversationProvider>
       <div className="flex h-screen w-full">
@@ -25,6 +31,7 @@ export default function ChatLayout({ children }: { children: ReactNode }) {
             {children}
           </div>
         </section>
+        <AuthDialog isOpen={isOpen} onClose={() => setIsOpen(false)} />
       </div>
     </ConversationProvider>
   )
