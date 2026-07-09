@@ -49,6 +49,7 @@ export default function AskInput({
   const editor = useEditor({
     extensions: [Document, Paragraph, Text, ToolChipNode],
     content: value,
+    immediatelyRender: false,
     onUpdate: ({ editor }) => {
       onChange(editor.getText())
       let hasToolChip = false
@@ -221,4 +222,3 @@ export default function AskInput({
     </div>
   )
 }
-
