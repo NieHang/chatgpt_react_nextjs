@@ -1,14 +1,14 @@
 'use client'
 
 import { ConversationProvider } from '@/providers/ConversationProvider'
-import { ReactNode, useEffect } from 'react'
+import { ReactNode } from 'react'
 import SideBar from '@/components/SideBar'
 import AuthDialog from '@/components/auth/AuthDialog'
 import React from 'react'
-import clsx from 'clsx'
 import LoginHeaderBar from '@/components/auth/LoginHeaderBar'
 import type { Session } from 'next-auth'
 import { SessionProvider } from 'next-auth/react'
+import { useAuth } from '@/stores/authStore'
 
 export default function ChatLayout({
   children,
@@ -17,7 +17,7 @@ export default function ChatLayout({
   children: ReactNode
   session: Session | null
 }) {
-  const [isOpen, setIsOpen] = React.useState(false)
+  const { showAuthDialog, setShowAuthDialog } = useAuth()
 
   return (
     <SessionProvider session={session}>
@@ -32,7 +32,10 @@ export default function ChatLayout({
               {children}
             </div>
           </section>
-          <AuthDialog isOpen={isOpen} onClose={() => setIsOpen(false)} />
+          <AuthDialog
+            isOpen={showAuthDialog}
+            onClose={() => setShowAuthDialog(false)}
+          />
         </div>
       </ConversationProvider>
     </SessionProvider>

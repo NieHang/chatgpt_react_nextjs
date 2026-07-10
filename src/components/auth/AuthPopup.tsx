@@ -1,8 +1,18 @@
 import clsx from 'clsx'
 import Popover from '@/components/common/Popover'
 import Image from 'next/image'
+import { useAuth } from '@/stores/authStore'
+import React from 'react'
 
 export default function AuthPopup() {
+  const [isPopoverOpen, setIsPopoverOpen] = React.useState(false)
+  const { setShowAuthDialog } = useAuth()
+
+  const openAuthDialog = () => {
+    setIsPopoverOpen(false)
+    setShowAuthDialog(true)
+  }
+
   const content = (
     <div className={clsx('flex flex-col', 'w-[280px] bg-white', 'rounded-2xl')}>
       <Image
@@ -28,6 +38,7 @@ export default function AuthPopup() {
               'hover:bg-gray-900',
               'cursor-pointer',
             )}
+            onClick={openAuthDialog}
           >
             Log in
           </button>
@@ -39,6 +50,7 @@ export default function AuthPopup() {
               'hover:bg-gray-100',
               'cursor-pointer',
             )}
+            onClick={openAuthDialog}
           >
             Sign up for free
           </button>
@@ -49,6 +61,8 @@ export default function AuthPopup() {
 
   return (
     <Popover
+      open={isPopoverOpen}
+      onOpenChange={setIsPopoverOpen}
       content={content}
       placement="bottom-start"
       floatingClassName="border-gray-300 border-1 rounded-2xl z-10 bg-white"
