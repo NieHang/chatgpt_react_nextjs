@@ -20,6 +20,9 @@ function createMongoClientPromise() {
   })
 }
 
+export const mongoClientPromise =
+  g._mongoClientPromise ?? createMongoClientPromise()
+
 export async function getDb() {
   if (!uri) {
     console.warn('[db] MONGODB_URI not set. Running without persistence.')

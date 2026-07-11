@@ -16,12 +16,12 @@ export default function AuthDialog({
     {
       icon: '/auth/google.svg',
       text: 'Continue with Google',
-      onClick: () => signIn('google'),
+      onClick: () => signIn('google', { redirectTo: '/' }),
     },
     {
       icon: '/auth/github.svg',
       text: 'Continue with GitHub',
-      onClick: () => signIn('github'),
+      onClick: () => signIn('github', { redirectTo: '/' }),
     },
   ]
   return (
