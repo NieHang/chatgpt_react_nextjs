@@ -11,6 +11,7 @@ import {
 } from 'openai/resources/responses/responses.js'
 import getOpenAIClient from '@/lib/openAIClient'
 import { intelligenceToReasoningEffort } from '@/constants/model'
+import { auth } from '@/auth'
 
 export const runtime = 'nodejs'
 
@@ -52,6 +53,18 @@ export async function POST(req: NextRequest) {
   if (!conversationId) {
     return new Response('Invalid conversation ID', { status: 400 })
   }
+
+  const session = await auth()
+
+  if (!session?.user.id)
+    return Response.json(
+      {
+        message: 'Unauthorized',
+      },
+      { status: 401 },
+    )
+
+  const userId = session.user.id
 
   const _cid = new ObjectId(conversationId)
 
@@ -133,6 +146,7 @@ export async function POST(req: NextRequest) {
       })
       await conversationsCollection?.insertOne({
         _id: _cid,
+        userId,
         title,
         messages: [userMessage],
         createdAt: timestamp,
