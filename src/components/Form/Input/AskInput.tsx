@@ -17,6 +17,8 @@ import { useModel } from '@/stores/modelStore'
 import { toolChipKind } from '@/constants/model'
 import { AttachmentOption } from '@/types/Form'
 import { insertToolChip } from '@/utils/TipTap/InsertToolChip'
+import { Placeholder } from '@tiptap/extensions'
+import '@/components/TipTap/tiptap.css'
 
 export default function AskInput({
   value,
@@ -47,7 +49,15 @@ export default function AskInput({
   const updateTool = useModel((state) => state.updateTool)
 
   const editor = useEditor({
-    extensions: [Document, Paragraph, Text, ToolChipNode],
+    extensions: [
+      Document,
+      Paragraph,
+      Text,
+      ToolChipNode,
+      Placeholder.configure({
+        placeholder: 'Ask ChatGPT',
+      }),
+    ],
     content: value,
     immediatelyRender: false,
     onUpdate: ({ editor }) => {
