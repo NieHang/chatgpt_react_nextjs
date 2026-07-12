@@ -15,6 +15,7 @@ export interface ConversationMessage {
 
 export interface Conversation {
   id?: Id
+  userId: string
   title?: string
   messages: ConversationMessage[]
   createdAt: Date
