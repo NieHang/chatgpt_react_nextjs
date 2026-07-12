@@ -6,6 +6,7 @@ import { useRouter, useParams } from 'next/navigation'
 import clsx from 'clsx'
 import { useConversations } from '@/providers/ConversationProvider'
 import type { ConversationMessage } from '@/types/Conversation'
+import UserInfoSection from '@/components/user/UserInfoSection'
 
 function getMessagePreview(content?: ConversationMessage['content']) {
   if (!content) return ''
@@ -22,6 +23,7 @@ export default function SideBar() {
   const [cutNav, setCutNav] = useState(false)
   const [imgSrc, setIconImgSrc] = useState('/sidebar/gpt.svg')
   const [showBorder, setShowBorder] = useState(false)
+  const [showUserInfoBorder, setShowUserInfoBorder] = useState(false)
   const navRef = useRef<HTMLElement>(null)
   const debounceTimer = useRef<NodeJS.Timeout | null>(null)
 
@@ -46,12 +48,15 @@ export default function SideBar() {
   useEffect(() => {
     const nav = navRef.current
     if (nav) {
-      const handleScroll = (e: Event) => {
+      const handleScroll = () => {
         if (debounceTimer.current) {
           clearTimeout(debounceTimer.current)
         }
         debounceTimer.current = setTimeout(() => {
-          setShowBorder((e.target as HTMLElement).scrollTop > 0)
+          const isAtBottom =
+            nav.scrollTop + nav.clientHeight >= nav.scrollHeight - 1
+          setShowBorder(nav.scrollTop > 0)
+          setShowUserInfoBorder(!isAtBottom)
         }, 200)
       }
       nav.addEventListener('scroll', handleScroll)
@@ -68,127 +73,130 @@ export default function SideBar() {
   }
 
   return (
-    <nav
-      ref={navRef}
+    <div
       className={clsx(
-        'overflow-y-auto transition-[width] duration-300 ease-in h-auto',
+        'flex flex-col h-full',
+        'transition-[width] duration-300 ease-in',
         'px-1 border-r-1 border-gray-100 bg-gray-50',
       )}
       style={{ width: cutNav ? '55px' : '260px' }}
     >
-      <div
-        className={clsx(
-          'sticky top-0',
-          'flex items-center justify-end',
-          'pb-1 h-11 bg-gray-50',
-        )}
-      >
+      <nav ref={navRef} className="min-h-0 flex-1 overflow-auto">
         <div
-          className="sidebar-item absolute top-0 left-0"
-          onClick={() => {
-            if (cutNav) setCutNav(!cutNav)
-          }}
+          className={clsx(
+            'sticky top-0',
+            'flex items-center justify-end',
+            'pb-1 h-11 bg-gray-50',
+          )}
         >
-          <Image
-            src={imgSrc}
-            alt="GPT Logo"
-            width={20}
-            height={20}
-            onMouseEnter={() => {
-              if (cutNav) setIconImgSrc('/sidebar/close-bar.svg')
+          <div
+            className="sidebar-item absolute top-0 left-0"
+            onClick={() => {
+              if (cutNav) setCutNav(!cutNav)
             }}
-            onMouseLeave={() => {
-              setIconImgSrc('/sidebar/gpt.svg')
-            }}
-          />
-        </div>
-        {!cutNav && (
-          <div className="sidebar-item" onClick={() => setCutNav(!cutNav)}>
+          >
             <Image
-              src="/sidebar/close-bar.svg"
-              alt="Close sidebar"
+              src={imgSrc}
+              alt="GPT Logo"
               width={20}
               height={20}
+              onMouseEnter={() => {
+                if (cutNav) setIconImgSrc('/sidebar/close-bar.svg')
+              }}
+              onMouseLeave={() => {
+                setIconImgSrc('/sidebar/gpt.svg')
+              }}
             />
           </div>
-        )}
-      </div>
-      <aside
-        className={`${
-          showBorder ? 'border-b-1 border-gray-200' : ''
-        } sticky top-[44px] bg-gray-50`}
-      >
-        {features.map((feature) => (
-          <div
-            className="pb-2 last:pb-0"
-            key={feature.label}
-            onClick={feature.fn}
-          >
-            <div className={`sidebar-item`}>
-              <div className="shrink-0">
-                <Image
-                  src={feature.src}
-                  alt={feature.label}
-                  width={20}
-                  height={20}
-                />
-              </div>
-              <div
-                className={`text-sm ml-1 whitespace-nowrap transition-[opacity] duration-300 ease-in`}
-                style={{ opacity: cutNav ? 0 : 1 }}
-              >
-                {feature.label}
-              </div>
+          {!cutNav && (
+            <div className="sidebar-item" onClick={() => setCutNav(!cutNav)}>
+              <Image
+                src="/sidebar/close-bar.svg"
+                alt="Close sidebar"
+                width={20}
+                height={20}
+              />
             </div>
-          </div>
-        ))}
-      </aside>
-      <aside>
-        {links.map((link, index) => (
-          <a
-            href={link.link}
-            target="_blank"
-            rel="noopener noreferrer"
-            key={index}
-          >
-            <div className="sidebar-item">
-              <div className="shrink-0">
-                <Image
-                  src={link.src}
-                  alt={link.label}
-                  width={20}
-                  height={20}
-                  className="shrink-0"
-                />
-              </div>
-              <div
-                className={`text-sm ml-1 whitespace-nowrap transition-[opacity] duration-300 ease-in`}
-                style={{ opacity: cutNav ? 0 : 1 }}
-              >
-                {link.label}
-              </div>
-            </div>
-          </a>
-        ))}
-      </aside>
-      <aside className="flex flex-col gap-2 pt-2">
-        {conversations.map((item) => (
-          <div
-            key={item?.id}
-            className={`sidebar-item ${
-              item.id === currentConversationId ? 'bg-gray-200' : ''
-            } transition-[opacity] duration-300 ease-in`}
-            style={{ opacity: cutNav ? 0 : 1 }}
-            onClick={() => handleConversationClick(item?.id)}
-          >
+          )}
+        </div>
+        <aside
+          className={`${
+            showBorder ? 'shadow-xs shadow-gray-200' : ''
+          } sticky top-[44px] bg-gray-50 transition-all`}
+        >
+          {features.map((feature) => (
             <div
-              className={`w-full overflow-ellipsis overflow-hidden text-sm whitespace-nowrap`}
+              className="pb-2 last:pb-0"
+              key={feature.label}
+              onClick={feature.fn}
             >
-              {item?.title ?? getMessagePreview(item?.messages?.[0]?.content)}
+              <div className={`sidebar-item`}>
+                <div className="shrink-0">
+                  <Image
+                    src={feature.src}
+                    alt={feature.label}
+                    width={20}
+                    height={20}
+                  />
+                </div>
+                <div
+                  className={`text-sm ml-1 whitespace-nowrap transition-[opacity] duration-300 ease-in`}
+                  style={{ opacity: cutNav ? 0 : 1 }}
+                >
+                  {feature.label}
+                </div>
+              </div>
             </div>
-          </div>
-        ))}
-      </aside>
-    </nav>
+          ))}
+        </aside>
+        <aside>
+          {links.map((link, index) => (
+            <a
+              href={link.link}
+              target="_blank"
+              rel="noopener noreferrer"
+              key={index}
+            >
+              <div className="sidebar-item">
+                <div className="shrink-0">
+                  <Image
+                    src={link.src}
+                    alt={link.label}
+                    width={20}
+                    height={20}
+                    className="shrink-0"
+                  />
+                </div>
+                <div
+                  className={`text-sm ml-1 whitespace-nowrap transition-[opacity] duration-300 ease-in`}
+                  style={{ opacity: cutNav ? 0 : 1 }}
+                >
+                  {link.label}
+                </div>
+              </div>
+            </a>
+          ))}
+        </aside>
+        <aside className="flex flex-col gap-2 pt-2">
+          {conversations.map((item) => (
+            <div
+              key={item?.id}
+              className={`sidebar-item ${
+                item.id === currentConversationId ? 'bg-gray-200' : ''
+              } transition-[opacity] duration-300 ease-in`}
+              style={{ opacity: cutNav ? 0 : 1 }}
+              onClick={() => handleConversationClick(item?.id)}
+            >
+              <div
+                className={`w-full overflow-ellipsis overflow-hidden text-sm whitespace-nowrap`}
+              >
+                {item?.title ?? getMessagePreview(item?.messages?.[0]?.content)}
+              </div>
+            </div>
+          ))}
+        </aside>
+      </nav>
+      <UserInfoSection showBorder={showUserInfoBorder} />
+    </div>
   )
 }
