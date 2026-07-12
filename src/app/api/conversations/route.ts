@@ -1,10 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { ObjectId } from 'mongodb'
+import { auth } from '@/auth'
 
 export async function GET(req: NextRequest) {
   try {
     const conversationId = req.nextUrl.searchParams.get('conversationId')
+    const session = await auth()
+
+    if (!session?.user.id)
+      return NextResponse.json(
+        {
+          message: 'Unauthorized',
+        },
+        { status: 401 },
+      )
+
     const db = await getDb()
     const list = await db!
       .collection('conversations')
@@ -12,8 +23,11 @@ export async function GET(req: NextRequest) {
         conversationId
           ? {
               _id: new ObjectId(conversationId),
+              userId: session?.user.id,
             }
-          : {},
+          : {
+              userId: session?.user.id,
+            },
       )
       .project({
         title: 1,

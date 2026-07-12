@@ -3,6 +3,8 @@
 import React, { useEffect } from 'react'
 import { getConversations } from '@/lib/api-wrapper/messages'
 import type { Conversation } from '@/types/Conversation'
+import { redirect } from 'next/navigation'
+import { useAuth } from '@/stores/authStore'
 
 type ConversationContextValue = {
   conversations: Conversation[]
@@ -18,9 +20,16 @@ export function ConversationProvider({
   children: React.ReactNode
 }) {
   const [conversations, setConversations] = React.useState<Conversation[]>([])
+  const setShowAuthDialog = useAuth((state) => state.setShowAuthDialog)
 
   const refreshConversations = React.useCallback(async () => {
     const res = await getConversations()
+
+    if (res.status === 401) {
+      setShowAuthDialog(true)
+      redirect('/')
+    }
+
     setConversations(res.data ?? [])
   }, [])
 

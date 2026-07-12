@@ -4,6 +4,7 @@ type ApiResponse<T> = {
   code: number
   message: string
   data: T
+  status?: number
 }
 
 type ApiFetchInit = RequestInit & {
@@ -48,18 +49,11 @@ export async function fetchJson<T>(
 
   const body = await response.json().catch(() => null)
 
-  if (!response.ok) {
-    throw new ApiError(
-      body.message,
-      response.status,
-      body?.errorType ?? 'unknown',
-    )
-  }
-
   return {
     code: body?.code,
     message: body?.message,
     data: body?.data,
+    status: response.status,
   }
 }
 
