@@ -2,7 +2,7 @@
 
 import { ConversationProvider } from '@/providers/ConversationProvider'
 import { ReactNode } from 'react'
-import SideBar from '@/components/SideBar'
+import SideBar from '@/components/sideBar/SideBar'
 import AuthDialog from '@/components/auth/AuthDialog'
 import React from 'react'
 import LoginHeaderBar from '@/components/auth/LoginHeaderBar'

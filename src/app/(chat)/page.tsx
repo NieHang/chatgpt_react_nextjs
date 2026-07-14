@@ -1,6 +1,6 @@
 'use client'
 
-import AskInput from '@/components/Form/Input/AskInput'
+import AskInput from '@/components/form/Input/AskInput'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { ObjectId } from 'bson'
