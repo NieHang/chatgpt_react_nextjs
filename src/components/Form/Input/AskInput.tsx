@@ -102,7 +102,7 @@ export default function AskInput({
             'hover:bg-gray-100 rounded-[12px]',
           )}
           onClick={() => {
-            if (editor) {
+            if (editor && option.type !== OPTION_TYPE.FILE) {
               insertToolChip(editor, option)
             }
 
