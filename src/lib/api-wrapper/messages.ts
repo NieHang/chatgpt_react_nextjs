@@ -12,6 +12,22 @@ export function getConversations(conversationId?: string) {
   )
 }
 
+export function updateConversationTitle({
+  title,
+  conversationId,
+}: {
+  title: string
+  conversationId: string
+}) {
+  return apiFetch('/api/conversations', {
+    method: 'PATCH',
+    json: {
+      title,
+      conversationId,
+    },
+  })
+}
+
 export function chat({
   model,
   intelligence,

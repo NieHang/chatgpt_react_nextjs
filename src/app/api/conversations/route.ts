@@ -62,21 +62,25 @@ export async function GET(req: NextRequest) {
 
 export async function PATCH(req: NextRequest) {
   try {
-    const id = req.nextUrl.searchParams.get('id')
     const db = await getDb()
-    const { title } = await req.json()
+    const conversationCollection = db!.collection('conversations')
+    const { title, conversationId } = await req.json()
     if (typeof title !== 'string' || title.trim() === '') {
       return NextResponse.json({ message: 'Invalid title' }, { status: 400 })
     }
-    if (!ObjectId.isValid(id!)) {
+    if (
+      !conversationCollection.findOne({
+        conversationId,
+      })
+    ) {
       return NextResponse.json(
         { message: 'Invalid conversation ID' },
         { status: 400 },
       )
     }
-    const _id = new ObjectId(id!)
+
     await db!.collection('conversations').updateOne(
-      { _id },
+      { _id: new ObjectId(conversationId) },
       {
         $set: {
           title: title.trim(),

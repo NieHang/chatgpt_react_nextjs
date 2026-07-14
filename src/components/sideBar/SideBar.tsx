@@ -5,15 +5,9 @@ import { useEffect, useRef, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import clsx from 'clsx'
 import { useConversations } from '@/providers/ConversationProvider'
-import type { ConversationMessage } from '@/types/Conversation'
 import UserInfoSection from '@/components/user/UserInfoSection'
+import ConversationList from '@/components/sideBar/ConversationList'
 
-function getMessagePreview(content?: ConversationMessage['content']) {
-  if (!content) return ''
-  if (typeof content === 'string') return content
-
-  return content.find((item) => item.type === 'input_text')?.text ?? ''
-}
 export default function SideBar() {
   const router = useRouter()
   const { id: currentConversationId } = useParams()
@@ -177,24 +171,12 @@ export default function SideBar() {
             </a>
           ))}
         </aside>
-        <aside className="flex flex-col gap-2 pt-2">
-          {conversations.map((item) => (
-            <div
-              key={item?.id}
-              className={`sidebar-item ${
-                item.id === currentConversationId ? 'bg-gray-200' : ''
-              } transition-[opacity] duration-300 ease-in`}
-              style={{ opacity: cutNav ? 0 : 1 }}
-              onClick={() => handleConversationClick(item?.id)}
-            >
-              <div
-                className={`w-full overflow-ellipsis overflow-hidden text-sm whitespace-nowrap`}
-              >
-                {item?.title ?? getMessagePreview(item?.messages?.[0]?.content)}
-              </div>
-            </div>
-          ))}
-        </aside>
+        <ConversationList
+          conversations={conversations}
+          cutNav={cutNav}
+          currentConversationId={currentConversationId}
+          handleConversationClick={handleConversationClick}
+        />
       </nav>
       <UserInfoSection showBorder={showUserInfoBorder} />
     </div>
