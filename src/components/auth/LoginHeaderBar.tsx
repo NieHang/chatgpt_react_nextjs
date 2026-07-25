@@ -4,7 +4,7 @@ import { useSession } from 'next-auth/react'
 import AuthPopup from './AuthPopup'
 
 export default function LoginHeaderBar() {
-  const { data: session, status } = useSession()
+  const { data: session } = useSession()
 
   return (
     <div

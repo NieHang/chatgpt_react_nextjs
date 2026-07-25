@@ -12,6 +12,7 @@ import {
 import getOpenAIClient from '@/lib/openAIClient'
 import { intelligenceToReasoningEffort } from '@/constants/model'
 import { auth } from '@/auth'
+import decryptApiKeyFromDB from '@/lib/util/decryptApiKeyFromDB'
 
 export const runtime = 'nodejs'
 
@@ -68,12 +69,15 @@ export async function POST(req: NextRequest) {
 
   const _cid = new ObjectId(conversationId)
 
-  const openAIClient = getOpenAIClient()!
-
   const db = await getDb().catch((error) => {
     console.error('Failed to connect to database:', error)
     return null
   })
+
+  const apiKey = await decryptApiKeyFromDB({ db: db!, userId })
+
+  const openAIClient = getOpenAIClient(apiKey as string)!
+
   const conversationsCollection = db
     ? db.collection<Conversation>(CollectionNames.CONVERSATIONS)
     : null

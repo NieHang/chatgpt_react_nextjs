@@ -6,20 +6,18 @@ const globalForOpenAI = globalThis as typeof globalThis & {
   openAIClient?: OpenAI
 }
 
-export default function getOpenAIClient() {
-  if (!process.env.OPENAI_API_KEY) {
+export default function getOpenAIClient(apiKey: string) {
+  if (!apiKey && !process.env.OPENAI_API_KEY) {
     throw new Error('OPENAI_API_KEY is not configured')
   }
 
-  if (!globalForOpenAI.openAIClient) {
-    const proxyUrl = process.env.HTTPS_PROXY || process.env.HTTP_PROXY
-    const dispatcher = proxyUrl ? new ProxyAgent(proxyUrl) : undefined
+  const proxyUrl = process.env.HTTPS_PROXY || process.env.HTTP_PROXY
+  const dispatcher = proxyUrl ? new ProxyAgent(proxyUrl) : undefined
 
-    globalForOpenAI.openAIClient = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
-      fetchOptions: dispatcher ? { dispatcher } : undefined,
-    })
-  }
+  globalForOpenAI.openAIClient = new OpenAI({
+    apiKey: apiKey || process.env.OPENAI_API_KEY,
+    fetchOptions: dispatcher ? { dispatcher } : undefined,
+  })
 
   return globalForOpenAI.openAIClient
 }

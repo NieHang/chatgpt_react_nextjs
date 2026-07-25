@@ -2,7 +2,13 @@
 
 import clsx from 'clsx'
 
-export default function Dialog({ children }: { children: React.ReactNode }) {
+export default function Dialog({
+  children,
+  extraClass,
+}: {
+  children: React.ReactNode
+  extraClass?: string
+}) {
   return (
     <section
       className={clsx(
@@ -10,6 +16,7 @@ export default function Dialog({ children }: { children: React.ReactNode }) {
         'w-[388px] h-fit p-4.5',
         'border border-gray-300 rounded-2xl shadow-lg',
         'bg-white',
+        extraClass,
       )}
     >
       {children}

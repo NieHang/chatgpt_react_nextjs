@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import getOpenAIClient from '@/lib/openAIClient'
 import saveFileToGridFS from '@/app/api/upload-files/saveFileToGridFS'
 import { isVisionImageFile } from '@/lib/fileTypes'
+import { auth } from '@/auth'
+import decryptApiKeyFromDB from '@/lib/util/decryptApiKeyFromDB'
+import { getDb } from '@/lib/db'
 
 export async function POST(req: NextRequest) {
   const formData = await req.formData()
@@ -9,7 +12,26 @@ export async function POST(req: NextRequest) {
     .getAll('files')
     .filter((item) => item instanceof File)
 
-  const openAIClient = getOpenAIClient()!
+  const db = await getDb().catch((error) => {
+    console.error('Failed to connect to database:', error)
+    return null
+  })
+
+  const session = await auth()
+
+  if (!session?.user.id)
+    return Response.json(
+      {
+        message: 'Unauthorized',
+      },
+      { status: 401 },
+    )
+
+  const userId = session.user.id
+
+  const apiKey = await decryptApiKeyFromDB({ db: db!, userId })
+
+  const openAIClient = getOpenAIClient(apiKey as string)!
 
   const uploadedFiles = await Promise.all(
     inputFiles.map(async (file) => {
