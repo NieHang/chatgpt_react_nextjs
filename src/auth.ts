@@ -41,8 +41,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   }),
 
   providers: [
-    Google({ [customFetch]: authFetch }),
-    GitHub({ [customFetch]: authFetch }),
+    Google({
+      [customFetch]: authFetch,
+      allowDangerousEmailAccountLinking: true,
+    }),
+    GitHub({
+      [customFetch]: authFetch,
+      allowDangerousEmailAccountLinking: true,
+    }),
   ],
 
   callbacks: {
