@@ -35,23 +35,40 @@ export async function POST(req: NextRequest) {
 
   const uploadedFiles = await Promise.all(
     inputFiles.map(async (file) => {
+      const isVisionImage = isVisionImageFile(file)
       const openaiFile = await openAIClient.files.create({
         file,
-        purpose: isVisionImageFile(file) ? 'vision' : 'user_data',
+        purpose: isVisionImage ? 'vision' : 'user_data',
       })
 
+      // files.create() can return before OpenAI has finished validating an
+      // image. Do not expose its file_id to the Responses API until it is ready.
+      const readyOpenAIFile = isVisionImage
+        ? await openAIClient.files.waitForProcessing(openaiFile.id, {
+            pollInterval: 500,
+            maxWait: 30_000,
+          })
+        : openaiFile
+
+      if (readyOpenAIFile.status === 'error') {
+        throw new Error(
+          readyOpenAIFile.status_details ||
+            `OpenAI failed to process image "${file.name}"`,
+        )
+      }
+
       const mongoFileId = await saveFileToGridFS(file, {
-        openaiFileId: openaiFile.id,
+        openaiFileId: readyOpenAIFile.id,
       })
 
       const mongoId = mongoFileId.toString()
 
       return {
-        id: openaiFile.id,
+        id: readyOpenAIFile.id,
         name: file.name,
         type: file.type,
         size: file.size,
-        openaiFileId: openaiFile.id,
+        openaiFileId: readyOpenAIFile.id,
         mongoFileId: mongoId,
         src: `/api/files/${mongoId}`,
         downloadUrl: `/api/files/${mongoId}?download=1`,
