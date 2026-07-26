@@ -217,6 +217,7 @@ export default function AskInput({
             )}
             onClick={() => {
               onKeyDown(files)
+              onChange('')
               setFiles([])
             }}
           >
