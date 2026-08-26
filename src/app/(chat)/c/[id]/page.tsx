@@ -1,4 +1,5 @@
 import Chat from '@/components/Chat'
+import clsx from 'clsx'
 
 type ChatPageProps = {
   params: {
@@ -10,7 +11,12 @@ export default async function ChatPage({ params }: ChatPageProps) {
   const { id: chatId } = await params
 
   return (
-    <div className="w-full h-screen flex flex-col items-center justify-center">
+    <div
+      className={clsx(
+        'flex flex-col items-center justify-center',
+        'w-full h-screen',
+      )}
+    >
       <Chat key={chatId} />
     </div>
   )

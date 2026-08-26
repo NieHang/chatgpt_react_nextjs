@@ -272,7 +272,7 @@ export default function Chat() {
   }, [conversationId, initialMessage])
 
   return (
-    <div className="relative flex flex-col w-[70%] h-full">
+    <div className="relative flex flex-col w-[500px] shrink-0 h-full">
       {isLoading ? (
         <Image
           src="/common/loading.svg"
@@ -326,7 +326,7 @@ export default function Chat() {
                 {/* message content */}
                 <div
                   className={clsx(
-                    'data-[multiline]:py-3',
+                    'data-[multiline]:py-3 break-words',
                     `rounded-[18px] ${
                       msg?.role === MsgRoles.USER
                         ? 'place-self-end px-4 py-1.5 bg-pink-50 text-[#4d1f34]'
@@ -438,3 +438,4 @@ export default function Chat() {
     </div>
   )
 }
+

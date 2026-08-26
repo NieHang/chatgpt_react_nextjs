@@ -104,48 +104,55 @@ export default function UserInfoSection({
   return (
     session?.user && (
       <>
-        <Popover
-          content={userOptionJSX}
-          placement="top-start"
-          floatingClassName="border-gray-300 border-1 rounded-2xl py-2 px-3 z-10 bg-white"
+        <div
+          className={clsx(
+            'flex items-center justify-between w-full overflow-hidden',
+            'p-1 rounded-[8px] cursor-pointer',
+            'hover:bg-gray-100',
+          )}
         >
-          <div
-            className={clsx(
-              'shrink-0 p-2 bg-gray-50 cursor-pointer transition-all',
-              showBorder && 'inset-shadow-xs shadow-gray-400',
-            )}
+          <Popover
+            content={userOptionJSX}
+            placement="top-start"
+            floatingClassName="border-gray-300 border-1 rounded-2xl py-2 px-3 z-10 bg-white"
           >
-            <div className="p-1 flex items-center justify-between rounded-[8px] hover:bg-gray-100">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-blue-400 rounded-full text-[12px] text-white text-center leading-8">
-                  {String(session?.user?.name?.slice(0, 2)).toUpperCase()}
-                </div>
-                <div className="flex flex-col items-start">
-                  <span className="text-[14px] text-black text-xs">
-                    {session?.user?.name}
-                  </span>
-                  <span className="text-gray-500 text-xs">Plus</span>
+            <div
+              className={clsx(
+                'shrink-0 p-2 transition-all',
+                showBorder && 'inset-shadow-xs shadow-gray-400',
+              )}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-blue-400 rounded-full text-[12px] text-white text-center leading-8">
+                    {String(session?.user?.name?.slice(0, 2)).toUpperCase()}
+                  </div>
+                  <div className="flex flex-col items-start">
+                    <span className="text-[14px] text-black text-xs">
+                      {session?.user?.name}
+                    </span>
+                    <span className="text-gray-500 text-xs">Plus</span>
+                  </div>
                 </div>
               </div>
-              <Popover
-                content={shopOptionJSX}
-                placement="top-start"
-                floatingClassName="border-gray-300 border-1 rounded-2xl py-2 px-3 z-10 bg-white"
-              >
-                <Tip
-                  tipContent={<div className="text-center">Download apps</div>}
-                >
-                  <Image
-                    src="/user/shop.svg"
-                    alt="plus"
-                    width={20}
-                    height={20}
-                  />
-                </Tip>
-              </Popover>
             </div>
-          </div>
-        </Popover>
+          </Popover>
+          <Popover
+            content={shopOptionJSX}
+            placement="top-start"
+            floatingClassName="border-gray-300 border-1 rounded-2xl py-2 px-3 z-10 bg-white"
+          >
+            <Tip tipContent={<div className="text-center">Download apps</div>}>
+              <Image
+                src="/user/shop.svg"
+                alt="plus"
+                width={20}
+                height={20}
+                className="shrink-0"
+              />
+            </Tip>
+          </Popover>
+        </div>
         <UserSettingsDialog
           isOpen={showUserSettingDialog}
           onClose={() => setShowUserSettingDialog(false)}
@@ -154,3 +161,4 @@ export default function UserInfoSection({
     )
   )
 }
+

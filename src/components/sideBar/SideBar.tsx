@@ -69,7 +69,7 @@ export default function SideBar() {
   return (
     <div
       className={clsx(
-        'flex flex-col h-full',
+        'flex flex-col h-full shrink-0',
         'transition-[width] duration-300 ease-in',
         'px-1 border-r-1 border-gray-100 bg-gray-50',
       )}
@@ -182,3 +182,4 @@ export default function SideBar() {
     </div>
   )
 }
+
