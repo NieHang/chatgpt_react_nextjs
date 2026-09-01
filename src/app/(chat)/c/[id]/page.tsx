@@ -14,11 +14,10 @@ export default async function ChatPage({ params }: ChatPageProps) {
     <div
       className={clsx(
         'flex flex-col items-center justify-center',
-        'w-full h-screen',
+        'w-full h-full min-h-0',
       )}
     >
       <Chat key={chatId} />
     </div>
   )
 }
-

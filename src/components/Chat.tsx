@@ -272,7 +272,7 @@ export default function Chat() {
   }, [conversationId, initialMessage])
 
   return (
-    <div className="relative flex flex-col w-[500px] shrink-0 h-full">
+    <div className="relative flex flex-col w-[500px] shrink-0 h-full min-h-0">
       {isLoading ? (
         <Image
           src="/common/loading.svg"
@@ -285,7 +285,7 @@ export default function Chat() {
           )}
         />
       ) : (
-        <div className="pb-[250px] space-y-3 overflow-y-auto scrollbar-hide">
+        <div className="min-h-0 flex-1 pb-[250px] space-y-3 overflow-y-auto scrollbar-hide">
           {messages.map((msg, msgIndex) =>
             msgIndex === msgIndexToBeEdited ? (
               <EditInput
@@ -419,7 +419,7 @@ export default function Chat() {
       )}
       <div
         className={clsx(
-          'absolute bottom-[50px]',
+          'absolute bottom-0',
           'flex flex-col justify-center',
           'w-full rounded-tl-3xl rounded-tr-3xl z-10 bg-white',
         )}
@@ -438,4 +438,3 @@ export default function Chat() {
     </div>
   )
 }
-

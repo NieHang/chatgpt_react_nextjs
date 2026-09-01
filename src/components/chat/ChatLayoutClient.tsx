@@ -22,13 +22,13 @@ export default function ChatLayout({
   return (
     <SessionProvider session={session}>
       <ConversationProvider>
-        <div className="flex h-screen w-full">
+        <div className="flex h-screen w-full overflow-hidden">
           <SideBar />
-          <section className="relative min-w-0 flex-1 overflow-x-auto flex flex-col items-center">
-            <div className="w-full sticky top-0">
+          <section className="relative min-w-0 min-h-0 flex-1 overflow-x-auto overflow-y-hidden flex flex-col items-center">
+            <div className="w-full shrink-0">
               <LoginHeaderBar />
             </div>
-            <div className="w-full min-w-[500px] h-full flex items-center justify-center">
+            <div className="w-full min-w-[500px] min-h-0 flex-1 flex items-center justify-center">
               {children}
             </div>
           </section>
@@ -41,4 +41,3 @@ export default function ChatLayout({
     </SessionProvider>
   )
 }
-
