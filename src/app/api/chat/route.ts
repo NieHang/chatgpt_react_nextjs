@@ -100,7 +100,7 @@ export async function POST(req: NextRequest) {
     ]
 
   const fetchOptions: ResponseCreateParamsStreaming = {
-    model: model,
+    model,
     stream: true,
     input: messages?.map(({ role, content }) => ({
       role: role === MsgRoles.TOOL ? MsgRoles.USER : role,
@@ -226,3 +226,4 @@ export async function POST(req: NextRequest) {
     },
   })
 }
+

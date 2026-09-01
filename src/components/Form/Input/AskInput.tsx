@@ -1,14 +1,14 @@
 import clsx from 'clsx'
 import Image from 'next/image'
 import Popover from '@/components/common/Popover'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import FileInput from '@/components/form/Input/FileInput'
 import UploadedFiles from '@/components/form/UploadedFiles'
 import { OPTION_TYPE } from '@/constants/form'
 import { Attachment } from '@/types/Form'
 import Tip from '@/components/common/Tip'
 import ModelSwitch from '@/components/ModelSwitch'
-import { EditorContent, useEditor } from '@tiptap/react'
+import { Editor, EditorContent, useEditor } from '@tiptap/react'
 import { ToolChipNode } from '@/components/tipTap/ToolChipNode'
 import Document from '@tiptap/extension-document'
 import Paragraph from '@tiptap/extension-paragraph'
@@ -48,6 +48,8 @@ export default function AskInput({
 
   const updateTool = useModel((state) => state.updateTool)
 
+  const editorRef = useRef<Editor | null>(null)
+
   const editor = useEditor({
     extensions: [
       Document,
@@ -82,7 +84,7 @@ export default function AskInput({
         if (e.key === 'Enter') {
           e.preventDefault()
           onKeyDown(files)
-          onChange('')
+          editorRef.current?.commands.clearContent()
           setFiles([])
           return true
         }
@@ -90,6 +92,13 @@ export default function AskInput({
       },
     },
   })
+
+  useEffect(() => {
+    if (editor) editorRef.current = editor
+    return () => {
+      editorRef.current = null
+    }
+  }, [editor])
 
   const attachmentOptionJSX = (
     <div className="flex flex-col w-[250px] bg-white">
@@ -217,7 +226,7 @@ export default function AskInput({
             )}
             onClick={() => {
               onKeyDown(files)
-              onChange('')
+              editorRef.current?.commands.clearContent()
               setFiles([])
             }}
           >
@@ -233,3 +242,4 @@ export default function AskInput({
     </div>
   )
 }
+
