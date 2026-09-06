@@ -9,10 +9,11 @@ import {
   ResponseCreateParamsStreaming,
   Tool,
 } from 'openai/resources/responses/responses.js'
-import getOpenAIClient from '@/lib/openAIClient'
 import { intelligenceToReasoningEffort } from '@/constants/model'
 import { auth } from '@/auth'
 import decryptApiKeyFromDB from '@/lib/util/decryptApiKeyFromDB'
+import initAgentLoop from '@/agent/index'
+import { ResponseInput } from 'openai/resources/responses/responses.js'
 
 export const runtime = 'nodejs'
 
@@ -29,6 +30,8 @@ function normalizeMessageDates(message: ConversationMessage) {
     ...(message.updateAt ? { updateAt: new Date(message.updateAt) } : {}),
   }
 }
+
+const agent = initAgentLoop()
 
 export async function POST(req: NextRequest) {
   const {
@@ -76,8 +79,6 @@ export async function POST(req: NextRequest) {
 
   const apiKey = await decryptApiKeyFromDB({ db: db!, userId })
 
-  const openAIClient = getOpenAIClient(apiKey as string)!
-
   const conversationsCollection = db
     ? db.collection<Conversation>(CollectionNames.CONVERSATIONS)
     : null
@@ -116,21 +117,6 @@ export async function POST(req: NextRequest) {
     tools: tool ? [tool] : [],
   }
 
-  let result
-
-  try {
-    result = await openAIClient.responses.create(fetchOptions)
-  } catch (error: any) {
-    return Response.json(
-      {
-        code: error.status,
-        message: error.message,
-        errorType: error.type,
-      },
-      { status: error.status },
-    )
-  }
-
   const lastUser = [...messages].reverse().find((m) => m.role === MsgRoles.USER)
   const userContent = lastUser?.content ?? ''
   const userAttachments = lastUser?.attachments
@@ -145,7 +131,7 @@ export async function POST(req: NextRequest) {
     }
     if (isNewChat) {
       const title = await generateTitle({
-        openAIClient,
+        apiKey,
         userMessage: getMessageText(userContent),
       })
       await conversationsCollection?.insertOne({
@@ -174,21 +160,18 @@ export async function POST(req: NextRequest) {
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
       try {
-        for await (const event of result) {
-          if (event.type === 'response.output_text.delta') {
-            assistantContent += event.delta
-            controller.enqueue(encoder.encode(event.delta))
-          }
+        const result = await agent.runAgentLoop({
+          config: { model, apiKey: apiKey as string },
+          messages: fetchOptions.input as ResponseInput,
+          signal: req.signal,
+          onText(text) {
+            assistantContent += text
+            controller.enqueue(encoder.encode(text))
+          },
+        })
 
-          if (event.type === 'response.failed') {
-            throw new Error(
-              event.response.error?.message ?? 'OpenAI response failed',
-            )
-          }
-
-          if (event.type === 'error') {
-            throw new Error(event.message)
-          }
+        if (result.reason !== 'end_turn') {
+          throw new Error(result.message ?? `Agent stopped: ${result.reason}`)
         }
 
         await runWithDb('Error persisting assistant conversation', async () => {
@@ -226,4 +209,3 @@ export async function POST(req: NextRequest) {
     },
   })
 }
-
