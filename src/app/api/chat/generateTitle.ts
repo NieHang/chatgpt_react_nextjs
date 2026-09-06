@@ -1,16 +1,19 @@
 import OpenAI from 'openai'
 import { ResponseCreateParamsNonStreaming } from 'openai/resources/responses/responses.js'
+import getOpenAIClient from '@/lib/openAIClient'
 
 const TITLE_INSTRUCTIONS =
   'Create a concise title for this chat using only the user message. Do not answer the message. Do not repeat the full message. Do not add facts, names, topics, or assumptions that are not present. Return only a title, 2 to 6 words, no quotes, no ending punctuation.'
 
 async function generateTitle({
-  openAIClient,
+  apiKey,
   userMessage,
 }: {
-  openAIClient: OpenAI
+  apiKey: string
   userMessage: string
 }) {
+  const openAIClient = getOpenAIClient(apiKey as string)!
+
   const fallback = 'NEW CHAT'
 
   try {
