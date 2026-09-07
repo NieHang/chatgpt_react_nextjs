@@ -9,7 +9,7 @@ it('stops when the turn count reaches the limit', async () => {
     output_text: 'Final response text',
     output: [
       {
-        type: 'custom_tool_call',
+        type: 'function_call',
         id: 'tool_call_1',
         call_id: 'call_1',
         name: 'tool_name',

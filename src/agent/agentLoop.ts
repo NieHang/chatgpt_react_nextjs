@@ -99,7 +99,7 @@ export async function runAgentLoop({
     })
 
     const toolUseBlocks = response.output.filter(
-      (block) => block.type === 'custom_tool_call',
+      (block) => block.type === 'function_call',
     )
 
     if (toolUseBlocks.length === 0) {
