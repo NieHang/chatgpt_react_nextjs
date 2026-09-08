@@ -44,7 +44,7 @@ export const ReadFileTool: Tool = {
     }
 
     try {
-      const baseUrl = process.env.APP_BASE_URL || 'http://localhost:3001'
+      const baseUrl = process.env.APP_BASE_URL
 
       const response = await fetch(`${baseUrl}/api/files/${fileId}`, {
         cache: 'no-store',
@@ -74,13 +74,20 @@ export const ReadFileTool: Tool = {
 
       const text = await response.text()
       const lines = text.split(/\r\n|\n|\r/)
-      const content = lines
-        .slice(offset, offset + limit)
+      const selectedLines = lines.slice(offset, offset + limit)
+      const numbered = selectedLines
         .map((line, index) => `${offset + index + 1}: ${line}`)
         .join('\n')
 
+      let result = numbered
+
+      // TODO: add a new method to check if the size of file is too large such as > 256kb
+      if (lines.length > offset + limit) {
+        result += `\n... (truncated, ${lines.length - (offset + limit)} more lines)`
+      }
+
       return {
-        content,
+        content: result,
         isError: false,
       }
     } catch (error) {

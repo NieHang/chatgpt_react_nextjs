@@ -1,8 +1,9 @@
-import { runAgentLoop } from './agentLoop'
-import { ContextManager } from './context'
-import { AgentConfig } from './type'
+import { runAgentLoop } from '@/agent/agentLoop'
+import { ContextManager } from '@/agent/context'
+import { AgentConfig } from '@/agent/type'
 import getOpenAIClient from '@/lib/openAIClient'
 import { ResponseInput } from 'openai/resources/responses/responses.js'
+import { createDefaultToolRegistry } from '@/agent/registry'
 
 interface RunAgentLoopParams {
   config: AgentConfig
@@ -18,6 +19,7 @@ export default function initAgentLoop() {
     runAgentLoop: async (params: RunAgentLoopParams) => {
       const { config, messages, signal, onText } = params
       const openAIClient = getOpenAIClient(config.apiKey)
+      const registry = createDefaultToolRegistry()
 
       const contextManager = new ContextManager(
         config.model,
@@ -29,6 +31,7 @@ export default function initAgentLoop() {
 
       const result = await runAgentLoop({
         client: openAIClient,
+        registry,
         context: contextManager,
         abortSignal: signal,
         onText,

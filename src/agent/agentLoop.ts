@@ -1,6 +1,8 @@
 import OpenAI from 'openai'
-import { ContextManager } from './context'
+import { ContextManager } from '@/agent/context'
 import { ResponseTextDeltaEvent } from 'openai/resources/responses/responses.js'
+import { ToolRegistry } from '@/agent/registry'
+import type { ResponseInputItem } from 'openai/resources/responses/responses.js'
 
 type StopReason =
   | 'end_turn'
@@ -11,6 +13,7 @@ type StopReason =
 
 interface AgentLoopParams {
   client: OpenAI
+  registry: ToolRegistry
   context: ContextManager
   abortSignal?: AbortSignal
   onText?: (text: string) => void
@@ -31,6 +34,7 @@ interface AgentLoopResult extends AgentLoopError {
 
 export async function runAgentLoop({
   client,
+  registry,
   context,
   abortSignal,
   onText,
@@ -59,6 +63,7 @@ export async function runAgentLoop({
           model,
           instructions: systemPrompt,
           input: messages,
+          tools: registry.toAPIFormat(),
         },
         { signal: abortSignal },
       )
@@ -66,7 +71,6 @@ export async function runAgentLoop({
       stream.on(
         'response.output_text.delta',
         (event: ResponseTextDeltaEvent) => {
-          console.log('Received text delta:', event.delta)
           if (onText) onText(event.delta)
         },
       )
@@ -109,5 +113,55 @@ export async function runAgentLoop({
         turnCount,
       }
     }
+
+    const toolResults: ResponseInputItem.FunctionCallOutput[] = []
+
+    for (const toolUse of toolUseBlocks) {
+      const tool = registry.get(toolUse.name)
+
+      if (!tool) {
+        toolResults.push({
+          type: 'function_call_output',
+          call_id: toolUse.call_id,
+          output: JSON.stringify({
+            error: 'tool_not_found',
+            message: `Tool "${toolUse.name}" not found in registry`,
+          }),
+        })
+        continue
+      }
+
+      console.log(
+        `[Tool] Executing tool: ${tool.name} with args:`,
+        toolUse.arguments,
+      )
+
+      try {
+        const result = await tool.execute(JSON.parse(toolUse.arguments))
+
+        const preview = result.content.slice(0, 200)
+        console.log(`[Tool] ${result.isError ? 'ERROR' : 'OK'}: ${preview}`)
+
+        toolResults.push({
+          type: 'function_call_output',
+          call_id: toolUse.call_id,
+          output: JSON.stringify(result),
+        })
+      } catch (err) {
+        const error = err as Error
+        console.error(`[Tool] Exception: ${error.message}`)
+
+        toolResults.push({
+          type: 'function_call_output',
+          call_id: toolUse.call_id,
+          output: JSON.stringify({
+            error: 'tool_execution_error',
+            message: `Tool execution error: ${error.message}`,
+          }),
+        })
+      }
+    }
+
+    context.addMessages(toolResults)
   }
 }
