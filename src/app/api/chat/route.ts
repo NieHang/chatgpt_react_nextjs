@@ -134,14 +134,18 @@ export async function POST(req: NextRequest) {
         apiKey,
         userMessage: getMessageText(userContent),
       })
-      await conversationsCollection?.insertOne({
-        _id: _cid,
-        userId,
-        title,
-        messages: [userMessage],
-        createdAt: timestamp,
-        updatedAt: timestamp,
-      })
+      await conversationsCollection?.updateOne(
+        { _id: _cid, userId },
+        {
+          $setOnInsert: {
+            title,
+            messages: [userMessage],
+            createdAt: timestamp,
+            updatedAt: timestamp,
+          },
+        },
+        { upsert: true },
+      )
     } else {
       await conversationsCollection?.updateOne(
         { _id: _cid },
