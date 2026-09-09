@@ -97,10 +97,26 @@ export async function runAgentLoop({
       }
     }
 
-    context.addMessage({
-      role: 'assistant',
-      content: response.output_text,
+    const outputItems = response.output.map((item) => {
+      if (item.type === 'function_call') {
+        const { parsed_arguments, ...call } = item
+        return call
+      }
+
+      if (item.type === 'message') {
+        return {
+          ...item,
+          content: item.content.map((part) => {
+            const { parsed, ...content } = part
+            return content
+          }),
+        }
+      }
+
+      return item
     })
+
+    context.addMessages(outputItems as ResponseInputItem[])
 
     const toolUseBlocks = response.output.filter(
       (block) => block.type === 'function_call',
