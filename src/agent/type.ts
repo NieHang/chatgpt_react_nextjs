@@ -14,7 +14,7 @@ export interface ConversationContext {
 
 export interface ToolContext {
   userId: string
-  conversationId: string
+  conversationId?: string
 }
 
 export interface ToolInputSchema {

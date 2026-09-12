@@ -3,6 +3,7 @@ import { ContextManager } from '@/agent/context'
 import { ResponseTextDeltaEvent } from 'openai/resources/responses/responses.js'
 import { ToolRegistry } from '@/agent/registry'
 import type { ResponseInputItem } from 'openai/resources/responses/responses.js'
+import { ToolContext } from './type'
 
 type StopReason =
   | 'end_turn'
@@ -15,6 +16,7 @@ interface AgentLoopParams {
   client: OpenAI
   registry: ToolRegistry
   context: ContextManager
+  toolContext: ToolContext
   abortSignal?: AbortSignal
   onText?: (text: string) => void
 }
@@ -38,6 +40,7 @@ export async function runAgentLoop({
   context,
   abortSignal,
   onText,
+  toolContext,
 }: AgentLoopParams): Promise<AgentLoopResult> {
   const maxTurns = 5
   let turnCount = 0
@@ -153,7 +156,10 @@ export async function runAgentLoop({
       )
 
       try {
-        const result = await tool.execute(JSON.parse(toolUse.arguments))
+        const result = await tool.execute(
+          JSON.parse(toolUse.arguments),
+          toolContext,
+        )
 
         const preview = result.content.slice(0, 200)
         console.log(`[Tool] ${result.isError ? 'ERROR' : 'OK'}: ${preview}`)

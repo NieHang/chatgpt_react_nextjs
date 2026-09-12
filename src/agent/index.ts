@@ -9,6 +9,8 @@ interface RunAgentLoopParams {
   config: AgentConfig
   messages: ResponseInput
   signal?: AbortSignal
+  userId: string
+  conversationId?: string
   onText?: (text: string) => void
 }
 
@@ -16,8 +18,9 @@ const SYSTEM_PROMPT = `You are a helpful assistant. You will be given a user inp
 
 export default function initAgentLoop() {
   return {
-    runAgentLoop: async (params: RunAgentLoopParams) => {
-      const { config, messages, signal, onText } = params
+    run: async (params: RunAgentLoopParams) => {
+      const { config, messages, signal, onText, userId, conversationId } =
+        params
       const openAIClient = getOpenAIClient(config.apiKey)
       const registry = createDefaultToolRegistry()
 
@@ -27,12 +30,18 @@ export default function initAgentLoop() {
         openAIClient,
       )
 
+      const toolContext = {
+        userId,
+        conversationId,
+      }
+
       contextManager.addMessages(messages)
 
       const result = await runAgentLoop({
         client: openAIClient,
         registry,
         context: contextManager,
+        toolContext,
         abortSignal: signal,
         onText,
       })

@@ -59,6 +59,7 @@ export async function POST(req: NextRequest) {
 
       const mongoFileId = await saveFileToGridFS(file, {
         openaiFileId: readyOpenAIFile.id,
+        userId,
       })
 
       const mongoId = mongoFileId.toString()

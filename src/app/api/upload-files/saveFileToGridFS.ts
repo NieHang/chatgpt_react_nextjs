@@ -7,6 +7,7 @@ export default async function saveFileToGridFS(
   file: File,
   metadata: {
     openaiFileId: string
+    userId: string
   },
 ): Promise<ObjectId> {
   const db = await getDb()

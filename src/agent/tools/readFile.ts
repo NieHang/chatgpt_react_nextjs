@@ -3,10 +3,13 @@ import type { Tool, ToolContext, ToolResult } from '@/agent/type'
 export const ReadFileTool: Tool = {
   name: 'ReadFile',
   description:
-    'Read the content of an uploaded file by its MongoDB file ID. ' +
-    'Supports plain text, Markdown, PDF, and Word documents. ' +
-    'Returns extracted text with 1-based line numbers. ' +
-    'Use offset (0-based) and limit to read a specific range of the extracted text.',
+    'Search uploaded files by exact filename, or read a file by its MongoDB file ID. ' +
+    'Use this tool when the user asks to search for, find, locate, open, or read an uploaded file, including image filenames. ' +
+    'For example, "can you search openjobs.png" means call this tool with file_name: "openjobs.png". ' +
+    'Search by filename even when no file ID or current attachment is available; ask for a filename only when neither an ID nor a filename can be identified. ' +
+    'If multiple matches are returned, use explicit user criteria or ask the user to choose, then call again with the selected file_id. ' +
+    'A unique match is automatically read. Content reading supports text MIME types and returns 1-based line numbers; binary files such as PNG, PDF, and Word documents currently return an unsupported-content error. ' +
+    'Use offset (0-based) and limit to read a specific range of text.',
   inputSchema: {
     type: 'object',
     properties: {
@@ -14,6 +17,14 @@ export const ReadFileTool: Tool = {
         type: 'string',
         description:
           'The ID of the file to read. Can be absolute or relative to the current working directory.',
+      },
+      file_name: {
+        type: 'string',
+        description:
+          'Uploaded filename to search for. ' +
+          'Provide this when the user asks to search for or read a named file and its MongoDB file ID is unknown. ' +
+          'The filename is sufficient to call this tool; do not ask the user for a file ID first. ' +
+          'Omit file_name when using a known file_id. Never silently select the first result when multiple files match.',
       },
       offset: {
         type: 'number',
@@ -25,16 +36,46 @@ export const ReadFileTool: Tool = {
         description: 'Maximum number of lines to read. Defaults to 100',
       },
     },
-    required: ['file_id'],
   },
   isReadOnly: true,
   execute: async (
     args: Record<string, unknown>,
     context: ToolContext,
   ): Promise<ToolResult> => {
-    const fileId = args.file_id as string
+    let fileId = args.file_id as string
+    const { userId } = context
+    const fileName = args.file_name as string
     const offset = (args.offset as number) || 0
     const limit = (args.limit as number) || 100
+    const baseUrl = process.env.APP_BASE_URL
+
+    if (!fileId && !fileName) {
+      return {
+        content: 'Ask the user to identify or upload the file',
+        isError: true,
+      }
+    }
+
+    if (!fileId && fileName) {
+      const response = await fetch(
+        `${baseUrl}/api/files/search/${encodeURIComponent(fileName)}?userId=${encodeURIComponent(userId)}`,
+      )
+
+      const body = await response.json()
+
+      if (body.files.length === 1) {
+        fileId = body.files[0]._id
+      } else if (body.files.length > 1) {
+        return {
+          content: JSON.stringify({
+            status: 'multiple_matches',
+            message: 'Ask the user to choose, then call ReadFile with file_id)',
+            files: body.files,
+          }),
+          isError: false,
+        }
+      }
+    }
 
     if (typeof fileId !== 'string' || !/^[a-f\d]{24}$/i.test(fileId)) {
       return {
@@ -44,8 +85,6 @@ export const ReadFileTool: Tool = {
     }
 
     try {
-      const baseUrl = process.env.APP_BASE_URL
-
       const response = await fetch(`${baseUrl}/api/files/${fileId}`, {
         cache: 'no-store',
       })
