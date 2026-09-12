@@ -164,10 +164,11 @@ export async function POST(req: NextRequest) {
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
       try {
-        const result = await agent.runAgentLoop({
+        const result = await agent.run({
           config: { model, apiKey: apiKey as string },
           messages: fetchOptions.input as ResponseInput,
           signal: req.signal,
+          userId,
           onText(text) {
             assistantContent += text
             controller.enqueue(encoder.encode(text))
