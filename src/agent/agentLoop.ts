@@ -42,7 +42,7 @@ export async function runAgentLoop({
   onText,
   toolContext,
 }: AgentLoopParams): Promise<AgentLoopResult> {
-  const maxTurns = 5
+  const maxTurns = 10
   let turnCount = 0
 
   while (true) {
