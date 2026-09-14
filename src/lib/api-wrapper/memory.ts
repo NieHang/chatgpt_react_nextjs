@@ -1,7 +1,11 @@
 import { apiFetch, fetchJson } from '@/lib/apiFetch'
 
 export function getProjectMemory(projectName: string) {
-  return fetchJson<string>(`/api/memory/${encodeURIComponent(projectName)}`)
+  return fetchJson<{
+    content: string
+    projectName: string
+    userId: string
+  }>(`/api/memory/${encodeURIComponent(projectName)}`)
 }
 
 export function updateProjectMemory({

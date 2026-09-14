@@ -3,6 +3,7 @@ import clsx from 'clsx'
 import Image from 'next/image'
 import UserSecuritySettings from '@/components/user/UserSecuritySettings'
 import { useState } from 'react'
+import UserInstructionSettings from '@/components/user/UserInstructionSettings'
 
 export default function UserSettingsDialog({
   isOpen,
@@ -11,10 +12,17 @@ export default function UserSettingsDialog({
   isOpen: boolean
   onClose: () => void
 }) {
-  const options = [
+  const options: {
+    label: 'Security' | 'Instructions'
+    icon: string
+  }[] = [
     {
       label: 'Security',
       icon: '/user/key.svg',
+    },
+    {
+      label: 'Instructions',
+      icon: '/user/bx-brain.svg',
     },
   ]
 
@@ -41,6 +49,7 @@ export default function UserSettingsDialog({
                   'p-2',
                   'hover:bg-gray-100 hover:rounded-[8px]',
                 )}
+                onClick={() => setCurrentOption(option)}
               >
                 <Image
                   src={option.icon}
@@ -52,11 +61,27 @@ export default function UserSettingsDialog({
               </div>
             ))}
           </div>
-          <div className="flex flex-col flex-1 pl-2">
+          <div
+            className={clsx(
+              'flex-col flex-1 pl-2',
+              currentOption.label === 'Security' ? 'flex' : 'hidden',
+            )}
+          >
             <div className="pb-2 mb-1 text-xl border-b-1 border-gray-300">
               {currentOption.label}
             </div>
             <UserSecuritySettings onClose={onClose} />
+          </div>
+          <div
+            className={clsx(
+              'flex-col flex-1 pl-2',
+              currentOption.label === 'Instructions' ? 'flex' : 'hidden',
+            )}
+          >
+            <div className="pb-2 mb-1 text-xl border-b-1 border-gray-300">
+              {currentOption.label}
+            </div>
+            <UserInstructionSettings />
           </div>
         </div>
       </Dialog>
