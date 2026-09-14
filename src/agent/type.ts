@@ -9,7 +9,7 @@ export interface AgentConfig {
 export interface ConversationContext {
   model: string
   messages: ResponseInput
-  systemPrompt: string
+  // systemPrompt: string
 }
 
 export interface ToolContext {

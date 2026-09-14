@@ -8,18 +8,12 @@ import { ConversationContext } from './type'
 export class ContextManager {
   private model: string
   private messages: ResponseInput = []
-  private systemPrompt: string
+  // private systemPrompt: string
   private sessionFile: string | undefined // TODO: support session file in the future
   private client: OpenAI
 
-  constructor(
-    model: string,
-    systemPrompt: string,
-    client: OpenAI,
-    sessionFile?: string,
-  ) {
+  constructor(model: string, client: OpenAI, sessionFile?: string) {
     this.model = model
-    this.systemPrompt = systemPrompt
     this.client = client
     this.sessionFile = sessionFile
   }
@@ -27,7 +21,6 @@ export class ContextManager {
   getContext(): ConversationContext {
     return {
       messages: [...this.messages],
-      systemPrompt: this.systemPrompt,
       model: this.model,
     }
   }

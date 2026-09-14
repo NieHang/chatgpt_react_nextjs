@@ -4,6 +4,7 @@ import { AgentConfig } from '@/agent/type'
 import getOpenAIClient from '@/lib/openAIClient'
 import { ResponseInput } from 'openai/resources/responses/responses.js'
 import { createDefaultToolRegistry } from '@/agent/registry'
+import { loadMemories, assembleMemory } from '@/agent/memory'
 
 interface RunAgentLoopParams {
   config: AgentConfig
@@ -14,8 +15,6 @@ interface RunAgentLoopParams {
   onText?: (text: string) => void
 }
 
-const SYSTEM_PROMPT = `You are a helpful assistant. You will be given a user input and you should respond with a helpful answer. You should also ask the user for clarification if needed.`
-
 export default function initAgentLoop() {
   return {
     run: async (params: RunAgentLoopParams) => {
@@ -24,15 +23,25 @@ export default function initAgentLoop() {
       const openAIClient = getOpenAIClient(config.apiKey)
       const registry = createDefaultToolRegistry()
 
-      const contextManager = new ContextManager(
-        config.model,
-        SYSTEM_PROMPT,
-        openAIClient,
-      )
+      const contextManager = new ContextManager(config.model, openAIClient)
 
       const toolContext = {
         userId,
         conversationId,
+      }
+
+      const memory = assembleMemory(
+        await loadMemories({
+          userId,
+          projectName: 'default',
+        }),
+      )
+
+      if (memory.trim()) {
+        contextManager.addMessage({
+          role: 'system',
+          content: memory,
+        })
       }
 
       contextManager.addMessages(messages)
