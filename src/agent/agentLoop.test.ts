@@ -4,6 +4,8 @@ import { ContextManager } from './context'
 import { runAgentLoop } from './agentLoop'
 import { createDefaultToolRegistry } from '@/agent/registry'
 
+vi.mock('@/lib/db', () => ({ getDb: vi.fn() }))
+
 it('stops when the turn count reaches the limit', async () => {
   const registry = createDefaultToolRegistry()
 
@@ -30,12 +32,13 @@ it('stops when the turn count reaches the limit', async () => {
     responses: { stream },
   } as unknown as OpenAI
 
-  const context = new ContextManager('model', 'system prompt', client)
+  const context = new ContextManager('model', client)
 
   const result = await runAgentLoop({
     client,
     registry,
     context,
+    instructions: 'Always reply in Chinese.',
     toolContext: {
       userId: '6a51e46fbd1e2d1486a288c9',
     },
@@ -44,4 +47,8 @@ it('stops when the turn count reaches the limit', async () => {
   })
 
   expect(result.reason).toBe('max_turns')
+  expect(stream.mock.calls.length).toBeGreaterThan(1)
+  for (const [request] of stream.mock.calls) {
+    expect(request.instructions).toBe('Always reply in Chinese.')
+  }
 })

@@ -4,11 +4,11 @@ import { AgentConfig } from '@/agent/type'
 import getOpenAIClient from '@/lib/openAIClient'
 import { ResponseInput } from 'openai/resources/responses/responses.js'
 import { createDefaultToolRegistry } from '@/agent/registry'
-import { loadMemories, assembleMemory } from '@/agent/memory'
 
 interface RunAgentLoopParams {
   config: AgentConfig
   messages: ResponseInput
+  instructions?: string
   signal?: AbortSignal
   userId: string
   conversationId?: string
@@ -30,26 +30,13 @@ export default function initAgentLoop() {
         conversationId,
       }
 
-      const memory = assembleMemory(
-        await loadMemories({
-          userId,
-          projectName: 'default',
-        }),
-      )
-
-      if (memory.trim()) {
-        contextManager.addMessage({
-          role: 'system',
-          content: memory,
-        })
-      }
-
       contextManager.addMessages(messages)
 
       const result = await runAgentLoop({
         client: openAIClient,
         registry,
         context: contextManager,
+        instructions: params.instructions,
         toolContext,
         abortSignal: signal,
         onText,

@@ -14,6 +14,7 @@ import { auth } from '@/auth'
 import decryptApiKeyFromDB from '@/lib/util/decryptApiKeyFromDB'
 import initAgentLoop from '@/agent/index'
 import { ResponseInput } from 'openai/resources/responses/responses.js'
+import { assembleMemory, loadMemories } from '@/agent/memory'
 
 export const runtime = 'nodejs'
 
@@ -100,9 +101,17 @@ export async function POST(req: NextRequest) {
       intelligence as keyof typeof intelligenceToReasoningEffort
     ]
 
+  const memories = assembleMemory(
+    await loadMemories({
+      userId,
+      projectName: 'default',
+    }),
+  )
+
   const fetchOptions: ResponseCreateParamsStreaming = {
     model,
     stream: true,
+    instructions: memories,
     input: messages?.map(({ role, content }) => ({
       role: role === MsgRoles.TOOL ? MsgRoles.USER : role,
       content,
@@ -167,6 +176,7 @@ export async function POST(req: NextRequest) {
         const result = await agent.run({
           config: { model, apiKey: apiKey as string },
           messages: fetchOptions.input as ResponseInput,
+          instructions: fetchOptions.instructions ?? undefined,
           signal: req.signal,
           userId,
           onText(text) {

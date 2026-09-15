@@ -3,7 +3,11 @@ import { useEffect, useState } from 'react'
 import { getProjectMemory, updateProjectMemory } from '@/lib/api-wrapper/memory'
 import { userSettingModel } from '@/stores/userSettingStore'
 
-export default function UserInstructionSettings() {
+export default function UserInstructionSettings({
+  onClose,
+}: {
+  onClose: () => void
+}) {
   const { instructions: storedInstructions, updateInstructions } =
     userSettingModel()
 
@@ -47,12 +51,13 @@ export default function UserInstructionSettings() {
           'hover:bg-gray-900',
           'cursor-pointer',
         )}
-        onClick={() =>
-          updateProjectMemory({
+        onClick={async () => {
+          await updateProjectMemory({
             content: instructions,
             projectName: 'default',
           })
-        }
+          onClose()
+        }}
       >
         Save
       </button>

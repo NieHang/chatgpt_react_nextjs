@@ -16,6 +16,7 @@ interface AgentLoopParams {
   client: OpenAI
   registry: ToolRegistry
   context: ContextManager
+  instructions?: string
   toolContext: ToolContext
   abortSignal?: AbortSignal
   onText?: (text: string) => void
@@ -38,6 +39,7 @@ export async function runAgentLoop({
   client,
   registry,
   context,
+  instructions,
   abortSignal,
   onText,
   toolContext,
@@ -56,7 +58,7 @@ export async function runAgentLoop({
       return { reason: 'max_turns', turnCount }
     }
 
-    const { messages, systemPrompt, model } = context.getContext()
+    const { messages, model } = context.getContext()
 
     let response
 
@@ -64,7 +66,7 @@ export async function runAgentLoop({
       const stream = client.responses.stream(
         {
           model,
-          instructions: systemPrompt,
+          instructions,
           input: messages,
           tools: registry.toAPIFormat(),
         },
