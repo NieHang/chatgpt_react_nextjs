@@ -4,6 +4,7 @@ import {
   ResponseInputItem,
 } from 'openai/resources/responses/responses.js'
 import { ConversationContext } from './type'
+import { estimateMessageTokens } from '@/lib/util/agent/estimateTokens'
 
 export class ContextManager {
   private model: string
@@ -27,6 +28,10 @@ export class ContextManager {
 
   getMessages(): ResponseInput {
     return this.messages
+  }
+
+  getEstimatedTokens(): number {
+    return estimateMessageTokens(this.messages)
   }
 
   addMessage(message: ResponseInputItem): void {
