@@ -52,6 +52,8 @@ export async function runAgentLoop({
       return { reason: 'aborted', turnCount }
     }
 
+    await context.maybeCompact()
+
     turnCount++
 
     if (turnCount >= maxTurns) {
