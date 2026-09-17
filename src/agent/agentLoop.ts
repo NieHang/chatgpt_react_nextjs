@@ -3,7 +3,8 @@ import { ContextManager } from '@/agent/context'
 import { ResponseTextDeltaEvent } from 'openai/resources/responses/responses.js'
 import { ToolRegistry } from '@/agent/registry'
 import type { ResponseInputItem } from 'openai/resources/responses/responses.js'
-import { ToolContext } from './type'
+import { ToolContext } from '@/agent/type'
+import { CostTracker } from '@/agent/costTracker'
 
 type StopReason =
   | 'end_turn'
@@ -16,6 +17,7 @@ interface AgentLoopParams {
   client: OpenAI
   registry: ToolRegistry
   context: ContextManager
+  costTracker: CostTracker
   instructions?: string
   toolContext: ToolContext
   abortSignal?: AbortSignal
@@ -39,6 +41,7 @@ export async function runAgentLoop({
   client,
   registry,
   context,
+  costTracker,
   instructions,
   abortSignal,
   onText,
@@ -83,6 +86,10 @@ export async function runAgentLoop({
       )
 
       response = await stream.finalResponse()
+      if (response.usage) {
+        costTracker.add(response.usage, model)
+        console.log(costTracker.summary())
+      }
       if (response.status === 'failed') {
         throw new Error(response.error?.message ?? 'OpenAI response failed')
       }

@@ -39,3 +39,18 @@ export interface Tool {
   ): Promise<ToolResult>
   isReadOnly: boolean
 }
+
+export interface ModelPricing {
+  input: number
+  output: number
+  cacheRead: number
+}
+
+export interface Breakdown {
+  input: number
+  output: number
+  cacheRead: number
+  cacheWrite: number
+  costUSD: number
+  calls: number
+}

@@ -1,3 +1,4 @@
+import { CostTracker } from '@/agent/costTracker'
 import { runAgentLoop } from '@/agent/agentLoop'
 import { ContextManager } from '@/agent/context'
 import { AgentConfig } from '@/agent/type'
@@ -22,6 +23,7 @@ export default function initAgentLoop() {
         params
       const openAIClient = getOpenAIClient(config.apiKey)
       const registry = createDefaultToolRegistry()
+      const costTracker = new CostTracker()
 
       const contextManager = new ContextManager(config.model, openAIClient)
 
@@ -36,6 +38,7 @@ export default function initAgentLoop() {
         client: openAIClient,
         registry,
         context: contextManager,
+        costTracker,
         instructions: params.instructions,
         toolContext,
         abortSignal: signal,
