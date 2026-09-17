@@ -77,6 +77,32 @@ export class ContextManager {
     return parts.join('\n')
   }
 
+  chooseWhereToSplitHistoryWithoutDestroyToolPair() {
+    let cutoff = Math.max(0, this.messages.length - KEEP_RECENT_MESSAGES)
+
+    const callPositions = new Map<string, number>()
+
+    for (const [index, msg] of this.messages.entries()) {
+      if (msg.type === 'function_call') {
+        callPositions.set(msg.call_id, index)
+      }
+    }
+
+    for (let i = this.messages.length - 1; i >= cutoff; i--) {
+      const msg = this.messages[i]
+
+      if (msg.type === 'function_call_output') {
+        const callIndex = callPositions.get(msg.call_id)
+
+        if (callIndex !== undefined && callIndex < cutoff) {
+          cutoff = callIndex
+        }
+      }
+    }
+
+    return cutoff
+  }
+
   async maybeCompact(): Promise<boolean> {
     const tokenCount = this.getEstimatedTokens()
     if (tokenCount < COMPACT_THRESHOLD) return false
@@ -85,8 +111,10 @@ export class ContextManager {
       `\n[Context] Token count ~${tokenCount} exceeds threshold ${COMPACT_THRESHOLD}. Compacting...`,
     )
 
-    const messageToCompress = this.messages.slice(0, -KEEP_RECENT_MESSAGES)
-    const recentMessages = this.messages.slice(-KEEP_RECENT_MESSAGES)
+    const cutoff = this.chooseWhereToSplitHistoryWithoutDestroyToolPair()
+
+    const messageToCompress = this.messages.slice(0, cutoff)
+    const recentMessages = this.messages.slice(cutoff)
     if (recentMessages.length === 0) return false
 
     try {
