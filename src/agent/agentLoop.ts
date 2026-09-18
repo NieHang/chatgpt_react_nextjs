@@ -5,6 +5,7 @@ import { ToolRegistry } from '@/agent/registry'
 import type { ResponseInputItem } from 'openai/resources/responses/responses.js'
 import { ToolContext } from '@/agent/type'
 import { CostTracker } from '@/agent/costTracker'
+import { SessionMemory } from '@/agent/sessionMemory'
 
 type StopReason =
   | 'end_turn'
@@ -16,6 +17,7 @@ type StopReason =
 interface AgentLoopParams {
   client: OpenAI
   registry: ToolRegistry
+  sessionMemory: SessionMemory
   context: ContextManager
   costTracker: CostTracker
   instructions?: string
@@ -40,6 +42,7 @@ interface AgentLoopResult extends AgentLoopError {
 export async function runAgentLoop({
   client,
   registry,
+  sessionMemory,
   context,
   costTracker,
   instructions,
@@ -88,7 +91,6 @@ export async function runAgentLoop({
       response = await stream.finalResponse()
       if (response.usage) {
         costTracker.add(response.usage, model)
-        console.log(costTracker.summary())
       }
       if (response.status === 'failed') {
         throw new Error(response.error?.message ?? 'OpenAI response failed')
@@ -174,6 +176,14 @@ export async function runAgentLoop({
 
         const preview = result.content.slice(0, 200)
         console.log(`[Tool] ${result.isError ? 'ERROR' : 'OK'}: ${preview}`)
+
+        if (
+          !result.isError &&
+          toolUse.name === 'WriteFile' &&
+          JSON.parse(toolUse.arguments).file_id
+        ) {
+          sessionMemory.recordFile(JSON.parse(toolUse.arguments).file_id)
+        }
 
         toolResults.push({
           type: 'function_call_output',

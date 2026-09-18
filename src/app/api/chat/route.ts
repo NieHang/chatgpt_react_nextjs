@@ -15,6 +15,8 @@ import decryptApiKeyFromDB from '@/lib/util/decryptApiKeyFromDB'
 import initAgentLoop from '@/agent/index'
 import { ResponseInput } from 'openai/resources/responses/responses.js'
 import { assembleMemory, loadMemories } from '@/agent/memory'
+import { SessionMemory } from '@/agent/sessionMemory'
+import { loadSessionMemory, saveSessionMemory } from '@/agent/sessionMemoryStore'
 
 export const runtime = 'nodejs'
 
@@ -101,12 +103,27 @@ export async function POST(req: NextRequest) {
       intelligence as keyof typeof intelligenceToReasoningEffort
     ]
 
-  const memories = assembleMemory(
-    await loadMemories({
-      userId,
-      projectName: 'default',
-    }),
-  )
+  const sessionMemory = new SessionMemory()
+  const savedMemory = await loadSessionMemory(userId, conversationId)
+  const lastUser = [...messages].reverse().find((m) => m.role === MsgRoles.USER)
+  const userContent = lastUser?.content ?? ''
+  const userAttachments = lastUser?.attachments
+
+  if (savedMemory) {
+    sessionMemory.restore(savedMemory)
+  } else {
+    sessionMemory.beginTask(getMessageText(userContent), _cid.toHexString())
+  }
+
+  const memories = [
+    assembleMemory(
+      await loadMemories({
+        userId,
+        projectName: 'default',
+      }),
+    ),
+    sessionMemory.toPromptBlock(),
+  ].join('\n\n')
 
   const fetchOptions: ResponseCreateParamsStreaming = {
     model,
@@ -125,10 +142,6 @@ export async function POST(req: NextRequest) {
       : {}),
     tools: tool ? [tool] : [],
   }
-
-  const lastUser = [...messages].reverse().find((m) => m.role === MsgRoles.USER)
-  const userContent = lastUser?.content ?? ''
-  const userAttachments = lastUser?.attachments
 
   await runWithDb('Error persisting user conversation', async () => {
     const timestamp = new Date()
@@ -176,13 +189,19 @@ export async function POST(req: NextRequest) {
         const result = await agent.run({
           config: { model, apiKey: apiKey as string },
           messages: fetchOptions.input as ResponseInput,
+          sessionMemory,
           instructions: fetchOptions.instructions ?? undefined,
           signal: req.signal,
           userId,
+          conversationId,
           onText(text) {
             assistantContent += text
             controller.enqueue(encoder.encode(text))
           },
+        }).finally(async () => {
+          await runWithDb('Error persisting session memory', async () => {
+            await saveSessionMemory(userId, conversationId, sessionMemory.snapShot())
+          })
         })
 
         if (result.reason !== 'end_turn') {
