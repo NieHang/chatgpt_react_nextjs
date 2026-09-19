@@ -1,4 +1,5 @@
 import { ResponseInput } from 'openai/resources/responses/responses.js'
+import { SessionMemory } from './sessionMemory'
 
 export interface AgentConfig {
   model: string
@@ -15,6 +16,7 @@ export interface ConversationContext {
 export interface ToolContext {
   userId: string
   conversationId?: string
+  sessionMemory?: SessionMemory
 }
 
 export interface ToolInputSchema {
@@ -36,7 +38,7 @@ export interface Tool {
   execute(
     args: Record<string, unknown>,
     context?: ToolContext,
-  ): Promise<ToolResult>
+  ): Promise<ToolResult> | ToolResult
   isReadOnly: boolean
 }
 

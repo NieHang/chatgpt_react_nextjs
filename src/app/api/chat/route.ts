@@ -16,7 +16,10 @@ import initAgentLoop from '@/agent/index'
 import { ResponseInput } from 'openai/resources/responses/responses.js'
 import { assembleMemory, loadMemories } from '@/agent/memory'
 import { SessionMemory } from '@/agent/sessionMemory'
-import { loadSessionMemory, saveSessionMemory } from '@/agent/sessionMemoryStore'
+import {
+  loadSessionMemory,
+  saveSessionMemory,
+} from '@/agent/sessionMemoryStore'
 
 export const runtime = 'nodejs'
 
@@ -115,15 +118,12 @@ export async function POST(req: NextRequest) {
     sessionMemory.beginTask(getMessageText(userContent), _cid.toHexString())
   }
 
-  const memories = [
-    assembleMemory(
-      await loadMemories({
-        userId,
-        projectName: 'default',
-      }),
-    ),
-    sessionMemory.toPromptBlock(),
-  ].join('\n\n')
+  const memories = assembleMemory(
+    await loadMemories({
+      userId,
+      projectName: 'default',
+    }),
+  )
 
   const fetchOptions: ResponseCreateParamsStreaming = {
     model,
@@ -186,23 +186,29 @@ export async function POST(req: NextRequest) {
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
       try {
-        const result = await agent.run({
-          config: { model, apiKey: apiKey as string },
-          messages: fetchOptions.input as ResponseInput,
-          sessionMemory,
-          instructions: fetchOptions.instructions ?? undefined,
-          signal: req.signal,
-          userId,
-          conversationId,
-          onText(text) {
-            assistantContent += text
-            controller.enqueue(encoder.encode(text))
-          },
-        }).finally(async () => {
-          await runWithDb('Error persisting session memory', async () => {
-            await saveSessionMemory(userId, conversationId, sessionMemory.snapShot())
+        const result = await agent
+          .run({
+            config: { model, apiKey: apiKey as string },
+            messages: fetchOptions.input as ResponseInput,
+            sessionMemory,
+            instructions: fetchOptions.instructions ?? undefined,
+            signal: req.signal,
+            userId,
+            conversationId,
+            onText(text) {
+              assistantContent += text
+              controller.enqueue(encoder.encode(text))
+            },
           })
-        })
+          .finally(async () => {
+            await runWithDb('Error persisting session memory', async () => {
+              await saveSessionMemory(
+                userId,
+                conversationId,
+                sessionMemory.snapShot(),
+              )
+            })
+          })
 
         if (result.reason !== 'end_turn') {
           throw new Error(result.message ?? `Agent stopped: ${result.reason}`)

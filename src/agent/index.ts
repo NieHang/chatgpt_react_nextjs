@@ -40,6 +40,7 @@ export default function initAgentLoop() {
       const toolContext = {
         userId,
         conversationId,
+        sessionMemory,
       }
 
       contextManager.addMessages(messages)

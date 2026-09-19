@@ -74,7 +74,9 @@ export async function runAgentLoop({
       const stream = client.responses.stream(
         {
           model,
-          instructions,
+          instructions: [instructions, sessionMemory.toPromptBlock()].join(
+            '\n\n',
+          ),
           input: messages,
           tools: registry.toAPIFormat(),
         },

@@ -32,10 +32,12 @@ export class ToolRegistry {
 
 import { ReadFileTool } from '@/agent/tools/readFile'
 import { WriteFileTool } from '@/agent/tools/writeFile'
+import { ReplaceDecisionTool } from '@/agent/tools/replaceDecision'
 
 export function createDefaultToolRegistry(): ToolRegistry {
   const registry = new ToolRegistry()
   registry.register(ReadFileTool)
   registry.register(WriteFileTool)
+  registry.register(ReplaceDecisionTool)
   return registry
 }

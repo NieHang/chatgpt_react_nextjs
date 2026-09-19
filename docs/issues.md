@@ -24,3 +24,10 @@ Solution:
 5. Summarize only the items before the final cutoff. Keep everything
    from the cutoff onward unchanged. If the cutoff reaches the start
    of the history, skip compaction.
+
+## SessionMemory won't be refreshed
+
+I have put SessionMemory inside a request so the sessionMemory can be injected to the instructions of the agent. It triggers an issue: the instructions were fixed. If the agent called some functions like recordFile, the instructions wouldn't be updated even the promptBlock of the sessionMemory updated.
+
+Solution:
+Put sessionMemory inside a `while` loop of agentLoop. Any tool and decision making update to `sessionMemory` appears in the next model call.
