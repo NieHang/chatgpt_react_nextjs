@@ -1,5 +1,5 @@
 import { ObjectId } from 'mongodb'
-import { NextRequest } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import type { Conversation, ConversationMessage } from '@/types/Conversation'
 import { getDb } from '@/lib/db'
 import { MsgRoles, CollectionNames } from '@/constants/conversation'
@@ -20,6 +20,8 @@ import {
   loadSessionMemory,
   saveSessionMemory,
 } from '@/agent/sessionMemoryStore'
+import { randomUUID } from 'node:crypto'
+import { ChatEvent } from '@/agent/type'
 
 export const runtime = 'nodejs'
 
@@ -106,6 +108,7 @@ export async function POST(req: NextRequest) {
       intelligence as keyof typeof intelligenceToReasoningEffort
     ]
 
+  const runId = randomUUID()
   const sessionMemory = new SessionMemory()
   const savedMemory = await loadSessionMemory(userId, conversationId)
   const lastUser = [...messages].reverse().find((m) => m.role === MsgRoles.USER)
@@ -185,9 +188,13 @@ export async function POST(req: NextRequest) {
   const encoder = new TextEncoder()
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
+      const sendEvent = (event: ChatEvent) => {
+        controller.enqueue(encoder.encode(JSON.stringify(event) + '\n'))
+      }
       try {
         const result = await agent
           .run({
+            runId,
             config: { model, apiKey: apiKey as string },
             messages: fetchOptions.input as ResponseInput,
             sessionMemory,
@@ -197,7 +204,7 @@ export async function POST(req: NextRequest) {
             conversationId,
             onText(text) {
               assistantContent += text
-              controller.enqueue(encoder.encode(text))
+              sendEvent({ type: 'text', text })
             },
           })
           .finally(async () => {
@@ -210,7 +217,19 @@ export async function POST(req: NextRequest) {
             })
           })
 
-        if (result.reason !== 'end_turn') {
+        if (result.reason === 'await_permission') {
+          const { runId, callId } = result.extraInfo ?? {}
+
+          if (!runId || !callId)
+            throw new Error('Missing permission request identifiers')
+
+          sendEvent({
+            type: 'permission',
+            runId,
+            callId,
+            message: result.message ?? 'Allow this action?',
+          })
+        } else if (result.reason !== 'end_turn') {
           throw new Error(result.message ?? `Agent stopped: ${result.reason}`)
         }
 
@@ -237,14 +256,18 @@ export async function POST(req: NextRequest) {
 
         controller.close()
       } catch (error) {
-        controller.error(error)
+        sendEvent({
+          type: 'error',
+          message: error instanceof Error ? error.message : 'Chat failed',
+        })
+        controller.close()
       }
     },
   })
 
   return new Response(stream, {
     headers: {
-      'Content-Type': 'text/plain; charset=utf-8',
+      'Content-Type': 'application/x-ndjson; charset=utf-8',
       'Cache-Control': 'no-cache',
     },
   })

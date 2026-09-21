@@ -8,6 +8,7 @@ import { createDefaultToolRegistry } from '@/agent/registry'
 import { SessionMemory } from '@/agent/sessionMemory'
 
 interface RunAgentLoopParams {
+  runId: string
   config: AgentConfig
   messages: ResponseInput
   sessionMemory: SessionMemory
@@ -22,6 +23,7 @@ export default function initAgentLoop() {
   return {
     run: async (params: RunAgentLoopParams) => {
       const {
+        runId,
         config,
         messages,
         signal,
@@ -46,6 +48,7 @@ export default function initAgentLoop() {
       contextManager.addMessages(messages)
 
       const result = await runAgentLoop({
+        runId,
         client: openAIClient,
         registry,
         sessionMemory,

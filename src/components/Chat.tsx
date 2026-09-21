@@ -19,6 +19,7 @@ import { produce } from 'immer'
 import MessageMarkdown from '@/components/common/MessageMarkdown'
 import { useModel } from '@/stores/modelStore'
 import { ApiError } from '@/lib/ApiError'
+import { ChatEvent } from '@/agent/type'
 
 function buildInputContent(
   files: UploadedFile[],
@@ -61,6 +62,11 @@ export default function Chat() {
   const [msgIndexToBeEdited, setMsgIndexToBeEdited] = useState<number | null>(
     null,
   )
+  const [pendingPermission, setPendingPermission] = useState<Extract<
+    ChatEvent,
+    { type: 'permission' }
+  > | null>(null)
+  const startNewAssistantMessage = useRef(true)
 
   const abortRef = useRef<AbortController | null>(null)
   const hasSentInitial = useRef(false)
@@ -85,6 +91,40 @@ export default function Chat() {
     },
   ]
 
+  const appendAssistantText = (text: string) => {
+    if (!text) return
+    const shouldStartNew = startNewAssistantMessage.current
+    startNewAssistantMessage.current = false
+
+    setMessages((prev) => {
+      const last = prev[prev.length - 1]
+
+      if (
+        !shouldStartNew &&
+        last?.role === MsgRoles.ASSISTANT &&
+        typeof last.content === 'string' &&
+        !last.isError
+      ) {
+        return [
+          ...prev.slice(0, -1),
+          {
+            ...last,
+            content: last.content + text,
+          },
+        ]
+      }
+
+      return [
+        ...prev,
+        {
+          role: MsgRoles.ASSISTANT,
+          content: text,
+          createdAt: new Date(),
+        },
+      ]
+    })
+  }
+
   const send = useCallback(
     async ({
       contentArg,
@@ -101,6 +141,7 @@ export default function Chat() {
 
       let filesFromOpenAI: UploadedFile[] | null = null
 
+      setPendingPermission(null)
       setIsThinking(true)
       if (inputFiles?.length) {
         const result = await uploadFiles({
@@ -156,27 +197,38 @@ export default function Chat() {
         while (true) {
           const { value, done } = await reader.read()
           if (done) break
-          chunk = decoder.decode(value || new Uint8Array(), {
+          chunk += decoder.decode(value || new Uint8Array(), {
             stream: true,
           })
           if (!chunk) continue
 
-          setMessages((prev) => {
-            const cp = [...prev]
-            const i = cp.findIndex(
-              (m, index) =>
-                m.role === MsgRoles.ASSISTANT && index === cp.length - 1,
-            )
-            if (i >= 0) cp[i] = { ...cp[i], content: cp[i].content + chunk }
-            else
-              cp.push({
-                role: MsgRoles.ASSISTANT,
-                content: chunk,
-                createdAt: new Date(),
-              })
-            return cp
-          })
+          const lines = chunk.split('\n')
+
+          chunk = lines.pop() ?? ''
+
+          for (const line of lines) {
+            if (!line.trim()) continue
+
+            const event = JSON.parse(line) as ChatEvent
+
+            switch (event.type) {
+              case 'text':
+                appendAssistantText(event.text)
+                setPendingPermission(null)
+                break
+              case 'permission':
+                appendAssistantText(`\n\n${event.message}`)
+                setPendingPermission(event)
+                break
+              case 'error':
+                throw new Error(event.message)
+            }
+          }
         }
+
+        chunk += decoder.decode()
+
+        if (chunk.trim()) throw new Error('incomplete chat event')
       } catch (error) {
         setMessages((prev) => {
           const cp = [...prev]
@@ -424,6 +476,20 @@ export default function Chat() {
           'w-full rounded-tl-3xl rounded-tr-3xl z-10 bg-white',
         )}
       >
+        {pendingPermission && (
+          <div className="flex items-center justify-between rounded-xl border p-3">
+            <p>Waiting for your approval</p>
+
+            <div className="flex gap-3">
+              <button className="cursor-pointer" type="button">
+                Allow once
+              </button>
+              <button className="cursor-pointer" type="button">
+                Deny
+              </button>
+            </div>
+          </div>
+        )}
         <AskInput
           value={input}
           onChange={setInput}

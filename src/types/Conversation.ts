@@ -12,6 +12,11 @@ export interface ConversationMessage {
   createdAt: Date
   updateAt?: Date
   isError?: boolean
+  permission?: {
+    runId: string
+    callId: string
+    status: 'pending' | 'approved' | 'denied'
+  }
 }
 
 export interface Conversation {

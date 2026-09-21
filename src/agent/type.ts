@@ -56,3 +56,16 @@ export interface Breakdown {
   costUSD: number
   calls: number
 }
+
+export type ChatEvent =
+  | { type: 'text'; text: string }
+  | {
+      type: 'permission'
+      runId: string
+      callId: string
+      message: string
+    }
+  | {
+      type: 'error'
+      message: string
+    }

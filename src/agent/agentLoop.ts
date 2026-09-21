@@ -2,10 +2,19 @@ import OpenAI from 'openai'
 import { ContextManager } from '@/agent/context'
 import { ResponseTextDeltaEvent } from 'openai/resources/responses/responses.js'
 import { ToolRegistry } from '@/agent/registry'
-import type { ResponseInputItem } from 'openai/resources/responses/responses.js'
+import type {
+  ParsedResponseFunctionToolCall,
+  ResponseInput,
+  ResponseInputItem,
+} from 'openai/resources/responses/responses.js'
 import { ToolContext } from '@/agent/type'
 import { CostTracker } from '@/agent/costTracker'
 import { SessionMemory } from '@/agent/sessionMemory'
+import {
+  PermissionBehavior,
+  PermissionDecision,
+  savePausedRun,
+} from '@/agent/permissions'
 
 type StopReason =
   | 'end_turn'
@@ -13,8 +22,10 @@ type StopReason =
   | 'error'
   | 'aborted'
   | 'permission_denied'
+  | 'await_permission'
 
 interface AgentLoopParams {
+  runId: string
   client: OpenAI
   registry: ToolRegistry
   sessionMemory: SessionMemory
@@ -37,9 +48,15 @@ interface AgentLoopResult extends AgentLoopError {
   reason: StopReason
   finalResponse?: string
   turnCount: number
+  extraInfo?: {
+    runId?: string
+    callId?: string
+    decision?: PermissionBehavior
+  }
 }
 
 export async function runAgentLoop({
+  runId,
   client,
   registry,
   sessionMemory,
@@ -150,8 +167,49 @@ export async function runAgentLoop({
 
     const toolResults: ResponseInputItem.FunctionCallOutput[] = []
 
-    for (const toolUse of toolUseBlocks) {
+    for (let i = 0; i < toolUseBlocks.length; i++) {
+      const toolUse = toolUseBlocks[i]
+
       const tool = registry.get(toolUse.name)
+
+      if (!tool?.isReadOnly) {
+        const args = JSON.parse(toolUse.arguments)
+        let decision: PermissionDecision = {
+          behavior: 'allow',
+          reason: '',
+        }
+
+        if (tool?.name === 'WriteFile' && args.file_id) {
+          await savePausedRun({
+            runId,
+            userId: toolContext.userId,
+            conversationId: toolContext.conversationId!,
+            messages,
+            toolUseBlocks,
+            toolResults,
+            nextToolIndex: i,
+            approvalCallId: toolUse.call_id,
+            status: 'awaiting_permission',
+          })
+          decision = {
+            behavior: 'ask',
+            reason: `write file: ${args.file_id}?`,
+          }
+        }
+
+        if (decision.behavior === 'ask') {
+          return {
+            reason: 'await_permission',
+            turnCount,
+            message: decision.reason,
+            extraInfo: {
+              runId,
+              callId: toolUse.call_id,
+              decision: 'allow',
+            },
+          }
+        }
+      }
 
       if (!tool) {
         toolResults.push({
