@@ -31,3 +31,11 @@ I have put SessionMemory inside a request so the sessionMemory can be injected t
 
 Solution:
 Put sessionMemory inside a `while` loop of agentLoop. Any tool and decision making update to `sessionMemory` appears in the next model call.
+
+## Resume after user approval
+
+The agent pauses before executing `WriteFile` and asks for user approval. The user confirms through a separate HTTP request, which cannot access the previous request's in-memory state.
+
+Issue: How can the agent resume the pending action without restarting the task or asking for approval again?
+
+Solution: Save a checkpoint before pausing, including the conversation context, pending tool calls, completed tool results, and execution position. When the user approves, validate the approval on the server, restore the checkpoint, execute the approved call, and continue the agent loop.

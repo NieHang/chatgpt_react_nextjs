@@ -6,6 +6,7 @@ import getOpenAIClient from '@/lib/openAIClient'
 import { ResponseInput } from 'openai/resources/responses/responses.js'
 import { createDefaultToolRegistry } from '@/agent/registry'
 import { SessionMemory } from '@/agent/sessionMemory'
+import { ToolPendingExecution } from '@/agent/permissions'
 
 interface RunAgentLoopParams {
   runId: string
@@ -17,6 +18,10 @@ interface RunAgentLoopParams {
   userId: string
   conversationId?: string
   onText?: (text: string) => void
+  resume?: {
+    pausedRun: ToolPendingExecution
+    approvedCallId: string
+  }
 }
 
 export default function initAgentLoop() {
@@ -31,6 +36,7 @@ export default function initAgentLoop() {
         userId,
         conversationId,
         sessionMemory,
+        resume,
       } = params
       const openAIClient = getOpenAIClient(config.apiKey)
       const registry = createDefaultToolRegistry()
@@ -58,6 +64,7 @@ export default function initAgentLoop() {
         toolContext,
         abortSignal: signal,
         onText,
+        resume,
       })
 
       return result

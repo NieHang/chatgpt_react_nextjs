@@ -18,6 +18,7 @@ export type ToolPendingExecution = {
   userId: string
   conversationId: string
 
+  instructions: string
   messages: ResponseInputItem[]
   toolUseBlocks: ResponseFunctionToolCall[]
   toolResults: ResponseInputItem.FunctionCallOutput[]

@@ -19,7 +19,8 @@ import { produce } from 'immer'
 import MessageMarkdown from '@/components/common/MessageMarkdown'
 import { useModel } from '@/stores/modelStore'
 import { ApiError } from '@/lib/ApiError'
-import { ChatEvent } from '@/agent/type'
+import type { ChatEvent } from '@/agent/type'
+import { approvePermission } from '@/lib/api-wrapper/permission'
 
 function buildInputContent(
   files: UploadedFile[],
@@ -125,6 +126,49 @@ export default function Chat() {
     })
   }
 
+  const readChatStream = async (res: Response) => {
+    if (!res.body) return
+    const reader = res.body.getReader()
+    const decoder = new TextDecoder()
+    let chunk = ''
+
+    while (true) {
+      const { value, done } = await reader.read()
+      if (done) break
+      chunk += decoder.decode(value || new Uint8Array(), {
+        stream: true,
+      })
+      if (!chunk) continue
+
+      const lines = chunk.split('\n')
+
+      chunk = lines.pop() ?? ''
+
+      for (const line of lines) {
+        if (!line.trim()) continue
+
+        const event = JSON.parse(line) as ChatEvent
+
+        switch (event.type) {
+          case 'text':
+            setPendingPermission(null)
+            appendAssistantText(event.text)
+            break
+          case 'permission':
+            appendAssistantText(`\n\n${event.message}`)
+            setPendingPermission(event)
+            break
+          case 'error':
+            throw new Error(event.message)
+        }
+      }
+    }
+
+    chunk += decoder.decode()
+
+    if (chunk.trim()) throw new Error('incomplete chat event')
+  }
+
   const send = useCallback(
     async ({
       contentArg,
@@ -190,45 +234,7 @@ export default function Chat() {
           )
         }
 
-        const reader = res.body.getReader()
-        const decoder = new TextDecoder()
-        let chunk = ''
-
-        while (true) {
-          const { value, done } = await reader.read()
-          if (done) break
-          chunk += decoder.decode(value || new Uint8Array(), {
-            stream: true,
-          })
-          if (!chunk) continue
-
-          const lines = chunk.split('\n')
-
-          chunk = lines.pop() ?? ''
-
-          for (const line of lines) {
-            if (!line.trim()) continue
-
-            const event = JSON.parse(line) as ChatEvent
-
-            switch (event.type) {
-              case 'text':
-                appendAssistantText(event.text)
-                setPendingPermission(null)
-                break
-              case 'permission':
-                appendAssistantText(`\n\n${event.message}`)
-                setPendingPermission(event)
-                break
-              case 'error':
-                throw new Error(event.message)
-            }
-          }
-        }
-
-        chunk += decoder.decode()
-
-        if (chunk.trim()) throw new Error('incomplete chat event')
+        readChatStream(res)
       } catch (error) {
         setMessages((prev) => {
           const cp = [...prev]
@@ -477,11 +483,31 @@ export default function Chat() {
         )}
       >
         {pendingPermission && (
-          <div className="flex items-center justify-between rounded-xl border p-3">
+          <div
+            className={clsx(
+              'flex items-center justify-between',
+              'w-[90%] place-self-center',
+              'rounded-tl-3xl rounded-tr-3xl p-3',
+              'bg-gray-100',
+            )}
+          >
             <p>Waiting for your approval</p>
 
             <div className="flex gap-3">
-              <button className="cursor-pointer" type="button">
+              <button
+                className="cursor-pointer"
+                type="button"
+                onClick={() =>
+                  approvePermission({
+                    model: modelState.model.model,
+                    conversationId: conversationId as string,
+                    runId: pendingPermission.runId,
+                    callId: pendingPermission.callId,
+                    decision: 'allow',
+                    callBack: readChatStream,
+                  })
+                }
+              >
                 Allow once
               </button>
               <button className="cursor-pointer" type="button">
