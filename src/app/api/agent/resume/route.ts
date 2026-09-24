@@ -9,6 +9,7 @@ import { ChatEvent } from '@/agent/type'
 import { Conversation } from '@/types/Conversation'
 import { SessionMemory } from '@/agent/sessionMemory'
 import { loadSessionMemory } from '@/agent/sessionMemoryStore'
+import { PermissionBehavior } from '@/agent/permissions'
 
 const agent = initAgentLoop()
 
@@ -29,11 +30,13 @@ export async function POST(req: NextRequest) {
       conversationId,
       runId,
       callId,
+      userDecision,
     }: {
       model: string
       conversationId: string
       runId: string
       callId: string
+      userDecision: PermissionBehavior
     } = await req.json()
 
     const userId = session.user.id
@@ -99,7 +102,8 @@ export async function POST(req: NextRequest) {
 
             resume: {
               pausedRun,
-              approvedCallId: callId,
+              callId,
+              userDecision,
             },
 
             onText(text) {

@@ -1,12 +1,12 @@
 import { PermissionBehavior } from '@/agent/permissions'
 import { apiFetch } from '@/lib/apiFetch'
 
-export async function approvePermission(params: {
+export async function confirmPermission(params: {
   model: string
   conversationId: string
   runId: string
   callId: string
-  decision: PermissionBehavior
+  userDecision: PermissionBehavior
   callBack: (res: Response) => void
 }) {
   const response = await recoverPausedRun(params)
@@ -17,10 +17,14 @@ export function recoverPausedRun({
   model,
   conversationId,
   runId,
+  userDecision,
+  callId,
 }: {
   model: string
   conversationId: string
   runId: string
+  callId: string
+  userDecision: PermissionBehavior
 }) {
   return apiFetch(`/api/agent/resume`, {
     method: 'POST',
@@ -28,6 +32,8 @@ export function recoverPausedRun({
       model,
       conversationId,
       runId,
+      userDecision,
+      callId,
     },
   })
 }

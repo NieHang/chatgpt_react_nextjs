@@ -20,7 +20,8 @@ import MessageMarkdown from '@/components/common/MessageMarkdown'
 import { useModel } from '@/stores/modelStore'
 import { ApiError } from '@/lib/ApiError'
 import type { ChatEvent } from '@/agent/type'
-import { approvePermission } from '@/lib/api-wrapper/permission'
+import { confirmPermission } from '@/lib/api-wrapper/permission'
+import { PermissionBehavior } from '@/agent/permissions'
 
 function buildInputContent(
   files: UploadedFile[],
@@ -128,6 +129,9 @@ export default function Chat() {
 
   const readChatStream = async (res: Response) => {
     if (!res.body) return
+
+    startNewAssistantMessage.current = true
+
     const reader = res.body.getReader()
     const decoder = new TextDecoder()
     let chunk = ''
@@ -151,8 +155,8 @@ export default function Chat() {
 
         switch (event.type) {
           case 'text':
-            setPendingPermission(null)
             appendAssistantText(event.text)
+            setPendingPermission(null)
             break
           case 'permission':
             appendAssistantText(`\n\n${event.message}`)
@@ -291,6 +295,20 @@ export default function Chat() {
     const target = msg.content.find((item) => item.type === 'input_text')
     return target?.text ?? ''
   }
+
+  const permissionBtns: {
+    label: string
+    decision: PermissionBehavior
+  }[] = [
+    {
+      label: 'Allow once',
+      decision: 'allow',
+    },
+    {
+      label: 'Deny',
+      decision: 'deny',
+    },
+  ]
 
   useEffect(() => {
     if (!initialMessage || hasSentInitial.current) return
@@ -494,25 +512,32 @@ export default function Chat() {
             <p>Waiting for your approval</p>
 
             <div className="flex gap-3">
-              <button
-                className="cursor-pointer"
-                type="button"
-                onClick={() =>
-                  approvePermission({
-                    model: modelState.model.model,
-                    conversationId: conversationId as string,
-                    runId: pendingPermission.runId,
-                    callId: pendingPermission.callId,
-                    decision: 'allow',
-                    callBack: readChatStream,
-                  })
-                }
-              >
-                Allow once
-              </button>
-              <button className="cursor-pointer" type="button">
-                Deny
-              </button>
+              {permissionBtns.map((item) => (
+                <button
+                  key={item.label}
+                  className={clsx(
+                    'p-2 rounded-3xl',
+                    'hover:bg-gray-200',
+                    'cursor-pointer',
+                  )}
+                  type="button"
+                  onClick={async () => {
+                    setIsThinking(true)
+                    setPendingPermission(null)
+                    await confirmPermission({
+                      model: modelState.model.model,
+                      conversationId: conversationId as string,
+                      runId: pendingPermission.runId,
+                      callId: pendingPermission.callId,
+                      userDecision: item.decision,
+                      callBack: readChatStream,
+                    })
+                    setIsThinking(false)
+                  }}
+                >
+                  {item.label}
+                </button>
+              ))}
             </div>
           </div>
         )}

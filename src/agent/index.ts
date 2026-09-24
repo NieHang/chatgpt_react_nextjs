@@ -6,7 +6,7 @@ import getOpenAIClient from '@/lib/openAIClient'
 import { ResponseInput } from 'openai/resources/responses/responses.js'
 import { createDefaultToolRegistry } from '@/agent/registry'
 import { SessionMemory } from '@/agent/sessionMemory'
-import { ToolPendingExecution } from '@/agent/permissions'
+import { PermissionBehavior, ToolPendingExecution } from '@/agent/permissions'
 
 interface RunAgentLoopParams {
   runId: string
@@ -20,7 +20,8 @@ interface RunAgentLoopParams {
   onText?: (text: string) => void
   resume?: {
     pausedRun: ToolPendingExecution
-    approvedCallId: string
+    callId: string
+    userDecision: PermissionBehavior
   }
 }
 

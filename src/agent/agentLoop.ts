@@ -39,7 +39,8 @@ interface AgentLoopParams {
   onText?: (text: string) => void
   resume?: {
     pausedRun: ToolPendingExecution
-    approvedCallId: string
+    callId: string
+    userDecision: PermissionBehavior
   }
 }
 
@@ -65,7 +66,8 @@ type ToolBatchParams = {
   toolUseBlocks: ResponseFunctionToolCall[]
   toolResults: ResponseInputItem.FunctionCallOutput[]
   startIndex: number
-  approvalCallId?: string
+  waitForApprovingCallId?: string
+  userDecision?: PermissionBehavior
 }
 
 type ToolBatchResult =
@@ -101,7 +103,8 @@ export async function runAgentLoop({
     toolUseBlocks,
     toolResults,
     startIndex,
-    approvalCallId,
+    waitForApprovingCallId,
+    userDecision,
   }: ToolBatchParams): Promise<ToolBatchResult> {
     for (let i = startIndex; i < toolUseBlocks.length; i++) {
       const toolUse = toolUseBlocks[i]
@@ -120,7 +123,22 @@ export async function runAgentLoop({
         continue
       }
 
-      const approved = toolUse.call_id === approvalCallId
+      const matchDecision = toolUse.call_id === waitForApprovingCallId
+      const approved = userDecision === 'allow' && matchDecision
+      const denied = userDecision === 'deny' && matchDecision
+
+      if (denied) {
+        toolResults.push({
+          type: 'function_call_output',
+          call_id: waitForApprovingCallId,
+          output: JSON.stringify({
+            error: 'permission_denied',
+            message:
+              'The user denied this action. It was not executed. Do not retry it without a new user request.',
+          }),
+        })
+        continue
+      }
 
       if (!tool?.isReadOnly && !approved) {
         const args = JSON.parse(toolUse.arguments)
@@ -212,13 +230,13 @@ export async function runAgentLoop({
   }
 
   if (resume?.pausedRun) {
-    const { toolUseBlocks, toolResults, nextToolIndex, approvalCallId } =
-      resume.pausedRun
+    const { toolUseBlocks, toolResults, nextToolIndex } = resume.pausedRun
     const batchResult = await executeToolBatch({
       toolUseBlocks,
       toolResults,
       startIndex: nextToolIndex,
-      approvalCallId,
+      waitForApprovingCallId: resume.callId,
+      userDecision: resume.userDecision,
     })
 
     if (batchResult.reason === 'await_permission') {
@@ -330,7 +348,6 @@ export async function runAgentLoop({
       toolUseBlocks,
       toolResults,
       startIndex: 0,
-      approvalCallId: resume?.approvedCallId,
     })
 
     if (batchResult.reason === 'await_permission') {
