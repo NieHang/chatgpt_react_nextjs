@@ -48,7 +48,7 @@ export function checkWritePermission(
 
   return {
     behavior: 'ask',
-    reason: `write a new file: ${fileName}`,
+    reason: `write a new file: ${fileName}?`,
   }
 }
 

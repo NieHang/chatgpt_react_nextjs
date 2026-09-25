@@ -2,21 +2,17 @@ import OpenAI from 'openai'
 import { ContextManager } from '@/agent/context'
 import { ResponseTextDeltaEvent } from 'openai/resources/responses/responses.js'
 import { ToolRegistry } from '@/agent/registry'
-import type {
-  ParsedResponseFunctionToolCall,
-  ResponseInput,
-  ResponseInputItem,
-} from 'openai/resources/responses/responses.js'
-import { ToolContext } from '@/agent/type'
+import type { ResponseInputItem } from 'openai/resources/responses/responses.js'
+import { ToolContext, ToolResult } from '@/agent/type'
 import { CostTracker } from '@/agent/costTracker'
 import { SessionMemory } from '@/agent/sessionMemory'
 import {
   PermissionBehavior,
-  PermissionDecision,
   savePausedRun,
   ToolPendingExecution,
 } from '@/agent/permissions'
 import { ResponseFunctionToolCall } from 'openai/resources/responses/responses.mjs'
+import { HookBus } from './hooks/hookBus'
 
 type StopReason =
   | 'end_turn'
@@ -30,6 +26,7 @@ interface AgentLoopParams {
   runId: string
   client: OpenAI
   registry: ToolRegistry
+  hookBus: HookBus
   sessionMemory: SessionMemory
   context: ContextManager
   costTracker: CostTracker
@@ -72,6 +69,7 @@ type ToolBatchParams = {
 
 type ToolBatchResult =
   | { reason: 'completed' }
+  | { reason: 'error'; message: string }
   | {
       reason: 'await_permission'
       message: string
@@ -95,6 +93,7 @@ export async function runAgentLoop({
   onText,
   toolContext,
   resume,
+  hookBus,
 }: AgentLoopParams): Promise<AgentLoopResult> {
   const maxTurns = 10
   let turnCount = 0
@@ -140,43 +139,59 @@ export async function runAgentLoop({
         continue
       }
 
-      if (!tool?.isReadOnly && !approved) {
-        const args = JSON.parse(toolUse.arguments)
-        let decision: PermissionDecision = {
-          behavior: 'allow',
-          reason: '',
-        }
+      const args = JSON.parse(toolUse.arguments)
 
-        if (tool?.name === 'WriteFile' && args.file_id) {
+      const preToolUse = await hookBus.emit({
+        event: 'PreToolUse',
+        toolName: tool.name,
+        toolInput: args,
+        isReadonly: tool.isReadOnly,
+        isApproved: approved,
+      })
+
+      if (preToolUse.blocked) {
+        console.log(
+          `\n[Hook] Blocked ${tool.name}: ${preToolUse.blockReason ?? '(no reason)'}`,
+        )
+        toolResults.push({
+          type: 'function_call_output',
+          call_id: toolUse.call_id,
+          output: JSON.stringify({
+            error: 'hook_blocked',
+            message: `Blocked by hook: ${preToolUse.blockReason ?? 'operation not permitted'}`,
+            isError: true,
+            hookContext: preToolUse.additionalContexts,
+          }),
+        })
+        continue
+      }
+
+      // Denial takes precedence over approval requests from other hooks.
+      if (preToolUse.needsApproval) {
+        try {
           await savePausedRun({
             runId,
             userId: toolContext.userId,
-            conversationId: toolContext.conversationId!,
-            instructions: instructions!,
+            conversationId: toolContext.conversationId ?? '',
+            instructions: instructions ?? '',
             messages: [...context.getMessages()],
             toolUseBlocks,
-            toolResults,
+            toolResults: [...toolResults],
             nextToolIndex: i,
             approvalCallId: toolUse.call_id,
             status: 'awaiting_permission',
           })
-          decision = {
-            behavior: 'ask',
-            reason: `write file: ${args.file_id}?`,
+        } catch (err) {
+          return {
+            reason: 'error',
+            message: `Could not save pending approval: ${err instanceof Error ? err.message : String(err)}`,
           }
         }
-
-        if (decision.behavior === 'ask') {
-          return {
-            reason: 'await_permission',
-            turnCount,
-            message: decision.reason,
-            extraInfo: {
-              runId,
-              callId: toolUse.call_id,
-              decision: 'allow',
-            },
-          }
+        return {
+          reason: 'await_permission',
+          turnCount,
+          message: preToolUse.approvalReason ?? 'Allow this action?',
+          extraInfo: { runId, callId: toolUse.call_id, decision: 'ask' },
         }
       }
 
@@ -185,40 +200,58 @@ export async function runAgentLoop({
         toolUse.arguments,
       )
 
+      let result: ToolResult & { error?: string; message?: string }
       try {
-        const result = await tool.execute(
-          JSON.parse(toolUse.arguments),
-          toolContext,
-        )
-
-        const preview = result.content.slice(0, 200)
-        console.log(`[Tool] ${result.isError ? 'ERROR' : 'OK'}: ${preview}`)
-
-        if (
-          !result.isError &&
-          toolUse.name === 'WriteFile' &&
-          JSON.parse(toolUse.arguments).file_id
-        ) {
-          sessionMemory.recordFile(JSON.parse(toolUse.arguments).file_id)
-        }
-
-        toolResults.push({
-          type: 'function_call_output',
-          call_id: toolUse.call_id,
-          output: JSON.stringify(result),
-        })
+        result = await tool.execute(args, toolContext)
       } catch (err) {
-        const error = err as Error
-        console.error(`[Tool] Exception: ${error.message}`)
+        const message = `Tool execution error: ${err instanceof Error ? err.message : String(err)}`
+        result = {
+          error: 'tool_execution_error',
+          message,
+          content: message,
+          isError: true,
+        }
+      }
 
-        toolResults.push({
-          type: 'function_call_output',
-          call_id: toolUse.call_id,
-          output: JSON.stringify({
-            error: 'tool_execution_error',
-            message: `Tool execution error: ${error.message}`,
-          }),
-        })
+      console.log(
+        `[Tool] ${result.isError ? 'ERROR' : 'OK'}: ${result.content.slice(0, 200)}`,
+      )
+
+      // Post hooks observe both returned errors and thrown exceptions.
+      const postToolUse = await hookBus.emit({
+        event: 'PostToolUse',
+        toolName: toolUse.name,
+        toolInput: args,
+        isError: result.isError,
+        toolResult: result,
+      })
+
+      if (
+        !result.isError &&
+        toolUse.name === 'WriteFile' &&
+        typeof args.file_id === 'string'
+      ) {
+        sessionMemory.recordFile(args.file_id)
+      }
+
+      toolResults.push({
+        type: 'function_call_output',
+        call_id: toolUse.call_id,
+        output: JSON.stringify({
+          ...result,
+          hookContext: [
+            ...preToolUse.additionalContexts,
+            ...postToolUse.additionalContexts,
+          ],
+        }),
+      })
+
+      if (postToolUse.blocked) {
+        context.addMessages(toolResults)
+        return {
+          reason: 'error',
+          message: `Stopped after ${tool.name}: ${postToolUse.blockReason}. The tool already ran; its side effects have not been rolled back.`,
+        }
       }
     }
 
@@ -233,13 +266,13 @@ export async function runAgentLoop({
     const { toolUseBlocks, toolResults, nextToolIndex } = resume.pausedRun
     const batchResult = await executeToolBatch({
       toolUseBlocks,
-      toolResults,
+      toolResults: [...toolResults],
       startIndex: nextToolIndex,
       waitForApprovingCallId: resume.callId,
       userDecision: resume.userDecision,
     })
 
-    if (batchResult.reason === 'await_permission') {
+    if (batchResult.reason !== 'completed') {
       return {
         ...batchResult,
         turnCount,
@@ -350,7 +383,7 @@ export async function runAgentLoop({
       startIndex: 0,
     })
 
-    if (batchResult.reason === 'await_permission') {
+    if (batchResult.reason !== 'completed') {
       return {
         ...batchResult,
         turnCount,
