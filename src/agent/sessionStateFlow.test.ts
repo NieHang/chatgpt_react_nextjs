@@ -7,6 +7,7 @@ import { SessionMemory } from './sessionMemory'
 import { ToolRegistry } from './registry'
 import { UpdateSessionStateTool } from './tools/updateSessionState'
 import { runAgentLoop } from './agentLoop'
+import { HookBus } from './hooks/hookBus'
 
 vi.mock('@/lib/db', () => ({ getDb: vi.fn() }))
 
@@ -36,6 +37,8 @@ function setup(
     onText,
     run: () =>
       runAgentLoop({
+        runId: 'test-run',
+        hookBus: new HookBus(),
         client,
         registry,
         context,
@@ -120,4 +123,3 @@ it('allows a direct streamed answer without calling the state tool', async () =>
   expect(scenario.onText).toHaveBeenCalledWith('Understood.')
   expect(scenario.memory.snapShot()).toEqual(before)
 })
-

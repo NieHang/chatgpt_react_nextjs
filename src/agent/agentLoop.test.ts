@@ -3,6 +3,9 @@ import type OpenAI from 'openai'
 import { ContextManager } from './context'
 import { runAgentLoop } from './agentLoop'
 import { createDefaultToolRegistry } from '@/agent/registry'
+import { SessionMemory } from './sessionMemory'
+import { CostTracker } from './costTracker'
+import { HookBus } from './hooks/hookBus'
 
 vi.mock('@/lib/db', () => ({ getDb: vi.fn() }))
 
@@ -35,9 +38,13 @@ it('stops when the turn count reaches the limit', async () => {
   const context = new ContextManager('model', client)
 
   const result = await runAgentLoop({
+    runId: 'test-run',
+    hookBus: new HookBus(),
     client,
     registry,
     context,
+    sessionMemory: new SessionMemory(),
+    costTracker: new CostTracker(),
     instructions: 'Always reply in Chinese.',
     toolContext: {
       userId: '6a51e46fbd1e2d1486a288c9',
@@ -49,6 +56,6 @@ it('stops when the turn count reaches the limit', async () => {
   expect(result.reason).toBe('max_turns')
   expect(stream.mock.calls.length).toBeGreaterThan(1)
   for (const [request] of stream.mock.calls) {
-    expect(request.instructions).toBe('Always reply in Chinese.')
+    expect(request.instructions).toContain('Always reply in Chinese.')
   }
 })

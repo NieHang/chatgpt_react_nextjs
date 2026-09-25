@@ -7,6 +7,7 @@ import { ToolRegistry } from './registry'
 import { ContextManager } from './context'
 import { CostTracker } from './costTracker'
 import { runAgentLoop } from './agentLoop'
+import { HookBus } from './hooks/hookBus'
 
 // Registry imports production file tools; these tests must not connect to MongoDB.
 vi.mock('@/lib/db', () => ({ getDb: vi.fn() }))
@@ -117,6 +118,8 @@ function createDecisionScenario(client: OpenAI, model = 'test-model') {
     context,
     run: (signal?: AbortSignal) =>
       runAgentLoop({
+        runId: 'test-run',
+        hookBus: new HookBus(),
         client,
         registry,
         context,
@@ -263,4 +266,3 @@ describe('ReplaceDecision tool', () => {
     )
   })
 })
-
