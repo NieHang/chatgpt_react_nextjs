@@ -17,6 +17,7 @@ export interface ToolContext {
   userId: string
   conversationId?: string
   sessionMemory?: SessionMemory
+  signal?: AbortSignal
 }
 
 export interface ToolInputSchema {

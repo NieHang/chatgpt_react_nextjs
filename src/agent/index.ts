@@ -8,7 +8,8 @@ import { createDefaultToolRegistry } from '@/agent/registry'
 import { SessionMemory } from '@/agent/sessionMemory'
 import { PermissionBehavior, ToolPendingExecution } from '@/agent/permissions'
 import { HookBus } from '@/agent/hooks/hookBus'
-import { makePermissionHook } from './hooks/builtins'
+import { makePermissionHook } from '@/agent/hooks/builtins'
+import { getMcpManager } from '@/agent/mcp/manager'
 
 interface RunAgentLoopParams {
   runId: string
@@ -27,7 +28,8 @@ interface RunAgentLoopParams {
   }
 }
 
-export default function initAgentLoop() {
+export default async function initAgentLoop() {
+  const mcp = getMcpManager()
   return {
     run: async (params: RunAgentLoopParams) => {
       const {
@@ -43,6 +45,7 @@ export default function initAgentLoop() {
       } = params
       const openAIClient = getOpenAIClient(config.apiKey)
       const registry = createDefaultToolRegistry()
+      for (const tool of mcp.getTools()) registry.register(tool)
       const hookBus = new HookBus()
       hookBus.register(makePermissionHook('default'))
       // TODO: move costTracker outside run function because it can only track one request now

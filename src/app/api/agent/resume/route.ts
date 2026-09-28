@@ -90,7 +90,9 @@ export async function POST(req: NextRequest) {
         let assistantContent = ''
 
         try {
-          const result = await agent.run({
+          const result = await (
+            await agent
+          ).run({
             runId: pausedRun.runId,
             userId,
             conversationId,

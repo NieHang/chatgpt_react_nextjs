@@ -42,3 +42,4 @@ export function makePermissionHook(mode: PermissionMode): Hook {
     },
   }
 }
+

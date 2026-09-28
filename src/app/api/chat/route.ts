@@ -192,7 +192,9 @@ export async function POST(req: NextRequest) {
         controller.enqueue(encoder.encode(JSON.stringify(event) + '\n'))
       }
       try {
-        const result = await agent
+        const result = await (
+          await agent
+        )
           .run({
             runId,
             config: { model, apiKey: apiKey as string },
